@@ -67,41 +67,44 @@ export default function AgentOrders() {
 
   // 📡 SOCKET ulash
   useEffect(() => {
-    const socket = io("https://sklad.richman.uz", {
-      transports: ["websocket"],
+    const socket = io("wss://sklad.richman.uz", {
+      transports: ["websocket"], // faqat WebSocket orqali
+      withCredentials: true,
     });
 
     socket.on("connect", () => {
       console.log("🟢 Socket ulandi:", socket.id);
+      message.success("🟢 Socketga muvaffaqiyatli ulandik");
+    });
+
+    socket.on("hello_test", (data) => {
+      console.log("✅ Backend test eventi keldi:", data);
+      message.info(data.msg);
     });
 
     socket.on("new_sale", (payload) => {
       console.log("🆕 Yangi sotuv keldi:", payload);
       message.info("🆕 Yangi agent zakazi keldi!");
 
-      // 🔊 Ovoz chalish
-      const audio = new Audio("../assets/mppp.mp3"); // public/notification.mp3 fayl
-      audio.play().catch((err) => {
-        console.warn("Audio chalishda xato:", err);
-      });
-
-      // 🔎 Faktura olish va avtomatik chop etish
       if (payload?.sale?._id) {
         setSelectedSaleId(payload.sale._id);
         setTimeout(() => handlePrint(), 500);
       }
 
-      // 🔄 jadvalni yangilash
       refetch();
     });
 
-    socket.on("disconnect", () => {
-      console.log("🔴 Socket uzildi");
+    socket.on("disconnect", (reason) => {
+      console.log("🔴 Socket uzildi:", reason);
+      message.warning("🔴 Socket uzildi");
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    socket.on("connect_error", (err) => {
+      console.error("❌ Ulanishda xato:", err.message);
+      message.error("❌ Socket ulanishda muammo");
+    });
+
+    return () => socket.disconnect();
   }, [refetch, handlePrint]);
 
   const columns = [
