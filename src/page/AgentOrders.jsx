@@ -80,7 +80,7 @@ export default function AgentOrders() {
       message.info("🆕 Yangi agent zakazi keldi!");
 
       // 🔊 Ovoz chalish
-      const audio = new Audio("/notification.mp3"); // public/notification.mp3 fayl
+      const audio = new Audio("../assets/mppp.mp3"); // public/notification.mp3 fayl
       audio.play().catch((err) => {
         console.warn("Audio chalishda xato:", err);
       });
