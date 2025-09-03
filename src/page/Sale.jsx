@@ -17,7 +17,7 @@ import {
 import { DeleteOutlined } from "@ant-design/icons";
 import { useReactToPrint } from "react-to-print";
 import { useGetAllStoreItemsQuery } from "../context/service/store.service";
-import SaleModal from "../components/Salemodal/"
+import SaleModal from "../components/Salemodal/Salemodal"
 import InvoicePrint from "../components/Faktura/InvoicePrint";
 
 const { Option } = Select;
