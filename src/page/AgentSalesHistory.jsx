@@ -2,7 +2,7 @@
 import React, { useMemo } from "react";
 import { Table, Tag, Space } from "antd";
 import dayjs from "dayjs";
-import { useSelector } from "react-redux";
+
 import { useGetSalesQuery } from "../context/service/sales.service";
 
 export default function AgentSalesHistory() {

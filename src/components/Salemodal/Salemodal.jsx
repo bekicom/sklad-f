@@ -32,14 +32,14 @@ export default function SaleModal({
           : customers.find((c) => c._id === selectedCustomer);
 
       const paidAmount =
-        paymentType === "qarz" ? values.paid_amount || 0 : totalAmount;
+        paymentType === "qarz" ? Number(values.paid_amount) || 0 : totalAmount;
 
       // 🔹 Payload
       const payload = {
         customer: {
-          name: customerData.name,
-          phone: customerData.phone,
-          address: customerData.address || "",
+          name: customerData?.name,
+          phone: customerData?.phone,
+          address: customerData?.address || "",
         },
         products: products.map((p) => ({
           product_id: p._id,
@@ -53,7 +53,7 @@ export default function SaleModal({
       // 🔹 API chaqirish
       const res = await createSale(payload).unwrap();
 
-      // 🔹 BuyerData ni to‘liq yuboramiz
+      // 🔹 BuyerData ni yuboramiz
       const buyerData = {
         ...customerData,
         paymentMethod: paymentType,
@@ -86,11 +86,7 @@ export default function SaleModal({
         });
       }
     } else {
-      form.setFieldsValue({
-        customer_name: "",
-        customer_phone: "",
-        customer_address: "",
-      });
+      form.resetFields(["customer_name", "customer_phone", "customer_address"]);
     }
   };
 
@@ -122,20 +118,17 @@ export default function SaleModal({
           <Select
             showSearch
             placeholder="Mijoz tanlang"
-            optionFilterProp="children"
+            optionFilterProp="label"
             onChange={handleCustomerChange}
             value={selectedCustomer}
-            filterOption={(input, option) =>
-              option.children?.toLowerCase().includes(input.toLowerCase())
-            }
-          >
-            <Option value="new">🆕 Yangi mijoz</Option>
-            {customers.map((c) => (
-              <Option key={c._id} value={c._id}>
-                {c.name}
-              </Option>
-            ))}
-          </Select>
+            options={[
+              { label: "🆕 Yangi mijoz", value: "new" },
+              ...customers.map((c) => ({
+                label: c.name,
+                value: c._id,
+              })),
+            ]}
+          />
         </Form.Item>
 
         {selectedCustomer === "new" && (
@@ -143,12 +136,7 @@ export default function SaleModal({
             <Form.Item
               label="Mijoz ismi"
               name="customer_name"
-              rules={[
-                {
-                  required: selectedCustomer === "new",
-                  message: "Ism kiriting",
-                },
-              ]}
+              rules={[{ required: true, message: "Ism kiriting" }]}
             >
               <Input placeholder="Mijoz ismi" />
             </Form.Item>
@@ -156,12 +144,7 @@ export default function SaleModal({
             <Form.Item
               label="Telefon raqami"
               name="customer_phone"
-              rules={[
-                {
-                  required: selectedCustomer === "new",
-                  message: "Telefon kiriting",
-                },
-              ]}
+              rules={[{ required: true, message: "Telefon kiriting" }]}
             >
               <Input placeholder="+998..." />
             </Form.Item>
@@ -182,11 +165,9 @@ export default function SaleModal({
             value={paymentType}
             onChange={(v) => {
               setPaymentType(v);
-              if (v !== "qarz") {
-                form.setFieldsValue({ paid_amount: totalAmount });
-              } else {
-                form.setFieldsValue({ paid_amount: 0 });
-              }
+              form.setFieldsValue({
+                paid_amount: v === "qarz" ? 0 : totalAmount,
+              });
             }}
           >
             <Option value="cash">Naqd</Option>
@@ -195,7 +176,7 @@ export default function SaleModal({
           </Select>
         </Form.Item>
 
-        {paymentType === "qarz" && (
+        {paymentType === "qarz" ? (
           <>
             <Form.Item
               label="Olingan summa"
@@ -218,16 +199,15 @@ export default function SaleModal({
             <div style={{ marginBottom: 10 }}>
               Qolgan qarz:{" "}
               <b>
-                {(
-                  totalAmount - (form.getFieldValue("paid_amount") || 0)
+                {Math.max(
+                  totalAmount - (form.getFieldValue("paid_amount") || 0),
+                  0
                 ).toLocaleString()}{" "}
                 so‘m
               </b>
             </div>
           </>
-        )}
-
-        {paymentType !== "qarz" && (
+        ) : (
           <div style={{ marginTop: 10 }}>
             Jami to‘lov: <b>{formattedTotal} so‘m</b>
           </div>
