@@ -396,7 +396,7 @@ export default function Agentsotuv() {
               className="search-input"
               style={{
                 height: 40,
-                minWidth: 200,
+                minWidth: 100,
                 flex: 2,
               }}
               placeholder="Mahsulot qidirish..."
@@ -409,7 +409,7 @@ export default function Agentsotuv() {
               onChange={setCategory}
               style={{
                 height: 40,
-                minWidth: 150,
+                minWidth: 50,
                 flex: 1,
               }}
             >
@@ -422,13 +422,6 @@ export default function Agentsotuv() {
                 )
               )}
             </Select>
-            <Button
-              className="refresh-button"
-              style={{ height: 40, minWidth: 100 }}
-              onClick={resetAfterSale}
-            >
-              Yangilash
-            </Button>
           </div>
 
           {/* Mahsulotlar grid */}
@@ -441,7 +434,7 @@ export default function Agentsotuv() {
                   style={{
                     borderRadius: 12,
                     border: "1px solid #e8f4fd",
-                    background: p.quantity <= 20 ? "#fff1f0" : "#fff",
+                    background: p.quantity <= 20 ? "#df5252ff" : "#fff",
                     cursor: p.quantity > 0 ? "pointer" : "not-allowed",
                     height: "150px",
                     transition: "all 0.2s ease",
