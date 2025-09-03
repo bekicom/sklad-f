@@ -434,7 +434,7 @@ export default function Agentsotuv() {
                   style={{
                     borderRadius: 12,
                     border: "1px solid #e8f4fd",
-                    background: p.quantity <= 20 ? "#df5252ff" : "#fff",
+                    background: p.quantity <= 20 ? "#df6d6dff" : "#fff",
                     cursor: p.quantity > 0 ? "pointer" : "not-allowed",
                     height: "150px",
                     transition: "all 0.2s ease",
