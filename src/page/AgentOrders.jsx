@@ -9,7 +9,7 @@ import {
 } from "../context/service/sales.service";
 import { useReactToPrint } from "react-to-print";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
-import { io } from "socket.io-client"; // 📌 qo‘shildi
+import { io } from "socket.io-client";
 
 export default function AgentOrders() {
   const { data, isLoading, refetch } = useGetAllSalesQuery();
@@ -18,6 +18,7 @@ export default function AgentOrders() {
   const printRef = useRef(null);
   const navigate = useNavigate();
 
+  // 🔙 Orqaga
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate("/");
@@ -77,6 +78,12 @@ export default function AgentOrders() {
     socket.on("new_sale", (payload) => {
       console.log("🆕 Yangi sotuv keldi:", payload);
       message.info("🆕 Yangi agent zakazi keldi!");
+
+      // 🔊 Ovoz chalish
+      const audio = new Audio("/notification.mp3"); // public/notification.mp3 fayl
+      audio.play().catch((err) => {
+        console.warn("Audio chalishda xato:", err);
+      });
 
       // 🔎 Faktura olish va avtomatik chop etish
       if (payload?.sale?._id) {
