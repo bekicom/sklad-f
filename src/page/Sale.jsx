@@ -363,6 +363,8 @@ export default function Sale() {
           overflow: "hidden",
         }}
       >
+
+        {/* swdsd */}
         <h3 style={{ marginBottom: 16 }}>
           Savat <Badge count={cart.length} />
         </h3>
