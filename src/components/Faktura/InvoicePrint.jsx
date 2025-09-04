@@ -16,9 +16,16 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
   const debtAmount = Math.max(0, finalAmount - paidAmount);
 
   const checkNo =
-    sale.checkNumber || sale._id
+    sale.checkNumber || sale.check_number || sale._id
       ? String(sale._id).slice(-6)
       : String(Date.now()).slice(-6);
+
+  // AGENT MA'LUMOTLARINI OLISH
+  const agentData = sale.agent_id || sale.agent_info;
+  const isAgentSale = !!(agentData || sale.sale_type === "agent");
+  const agentName = agentData?.name || sale.agent_name || "Noma'lum Agent";
+  const agentPhone = agentData?.phone || sale.agent_phone || "";
+  const agentLocation = agentData?.location || "";
 
   const formatDate = (d) =>
     new Date(d).toLocaleString("uz-UZ", {
@@ -117,33 +124,41 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
               <strong>Sana:</strong> {formatDate(saleDate)}
             </td>
             <td style={cellStyle}>
-              <strong>Sotuvchi:</strong> {sale.seller || "Sotuvchi"}
+              <strong>Sotuvchi:</strong>{" "}
+              {isAgentSale ? "Agent sotuvi" : sale.seller || "Admin"}
             </td>
             <td style={cellStyle}>
               <strong>Tel:</strong> +998 94 732 44 44
             </td>
           </tr>
+
+          {/* AGENT QATORI - Agent bo'lsa ko'rsatish */}
+          {isAgentSale && (
+            <tr style={{ backgroundColor: "#e8f4f8" }}>
+              <td
+                style={{ ...cellStyle, fontWeight: "bold", color: "#1677ff" }}
+              >
+                <strong>Agent:</strong> {agentName}
+              </td>
+              <td style={cellStyle}>
+                <strong>Tel:</strong> {agentPhone || "—"}
+              </td>
+            </tr>
+          )}
+
           {sale.customer && (
             <tr>
               <td style={cellStyle}>
                 <strong>Mijoz:</strong> {sale.customer.name || "-"}
               </td>
               <td style={cellStyle}>
-                <strong>Telefon:</strong> {sale.customer.phone || "-"}
+                <strong>Tel:</strong> {sale.customer.phone || "-"}
               </td>
               <td style={cellStyle}>
                 <strong>Manzili:</strong> {sale.customer.address || "-"}
               </td>
               <td style={cellStyle}>
                 <strong>To'lov:</strong> {paymentLabel}
-              </td>
-            </tr>
-          )}
-          {sale.agent_id && (
-            <tr>
-              <td style={cellStyle} colSpan={4}>
-                <strong>Agent:</strong> {sale.agent_id.name} (
-                {sale.agent_id.phone || "—"})
               </td>
             </tr>
           )}

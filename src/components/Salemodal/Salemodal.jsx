@@ -43,9 +43,15 @@ export default function SaleModal({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // SaleModal.js - handleSubmit funksiyasini yangilaymiz
+
   const handleSubmit = async (values) => {
     try {
-      // 🔹 Mijoz ma'lumotlari
+      // Agent ma'lumotlarini localStorage dan olish
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const isAgent = currentUser.role === "agent";
+
+      // Mijoz ma'lumotlari
       const customerData =
         selectedCustomer === "new"
           ? {
@@ -58,7 +64,7 @@ export default function SaleModal({
       const paidAmount =
         paymentType === "qarz" ? Number(values.paid_amount) || 0 : totalAmount;
 
-      // 🔹 Payload
+      // Payload - AGENT MA'LUMOTLARINI QO'SHAMIZ
       const payload = {
         customer: {
           name: customerData?.name,
@@ -72,26 +78,50 @@ export default function SaleModal({
         })),
         paid_amount: paidAmount,
         payment_method: paymentType,
+
+        // AGENT MA'LUMOTLARINI QO'SHISH
+        ...(isAgent && {
+          agent_info: {
+            name: currentUser.name || "Agent",
+            phone: currentUser.phone || "",
+            location: currentUser.location || currentUser.address || "",
+          },
+        }),
       };
 
-      // 🔹 API chaqirish
+      // Console log - debug uchun
+      console.log("🔍 Yuborilayotgan payload:", payload);
+      console.log("👤 Current user:", currentUser);
+
+      // API chaqirish
       const res = await createSale(payload).unwrap();
 
-      // 🔹 BuyerData ni yuboramiz
+      console.log("✅ Backend response:", res);
+
+      // BuyerData ni yuboramiz (onSuccess uchun)
       const buyerData = {
         ...customerData,
         paymentMethod: paymentType,
         paidAmount,
+        // Agent ma'lumotlarini buyerData ga ham qo'shamiz
+        ...(isAgent && {
+          agent: {
+            name: currentUser.name || "Agent",
+            phone: currentUser.phone || "",
+            location: currentUser.location || "",
+          },
+        }),
       };
 
-      message.success("✅ Sotuv muvaffaqiyatli amalga oshirildi");
+      message.success("Sotuv muvaffaqiyatli amalga oshirildi");
       form.resetFields();
       setSelectedCustomer("new");
       setPaymentType("cash");
 
-      if (onSuccess) onSuccess(buyerData, res.sale);
+      if (onSuccess) onSuccess(buyerData, res);
       onClose();
     } catch (err) {
+      console.error("❌ Sotuv xatoligi:", err);
       message.error("Xatolik: " + (err?.data?.message || "Server xatosi"));
     }
   };
