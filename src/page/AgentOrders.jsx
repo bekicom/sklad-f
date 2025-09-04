@@ -10,8 +10,8 @@ import {
   Col,
   Badge,
   notification,
+  Tooltip,
 } from "antd";
-import { ArrowLeftOutlined, SoundOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import {
@@ -21,6 +21,7 @@ import {
 import { useReactToPrint } from "react-to-print";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
 import { io } from "socket.io-client";
+import { ArrowLeftOutlined, PrinterOutlined } from "@ant-design/icons";
 
 export default function AgentOrders() {
   const { data, isLoading, refetch } = useGetAllSalesQuery();
@@ -30,9 +31,74 @@ export default function AgentOrders() {
   const [socketConnected, setSocketConnected] = useState(false);
   const printRef = useRef(null);
   const navigate = useNavigate();
-  const audioRef = useRef(new Audio("/notification-sound.mp3")); // yangi sotuv ovozi
+  const audioRef = useRef(new Audio("/notification-sound.mp3"));
 
-  // Orqaga
+  // ✅ Yangi (yashil) va chop etilgan (qizil) sotuv IDlarini saqlash
+  const [newSaleIds, setNewSaleIds] = useState(() => {
+    try {
+      return new Set(
+        JSON.parse(localStorage.getItem("agent_new_sales") || "[]")
+      );
+    } catch {
+      return new Set();
+    }
+  });
+
+  const [printedSaleIds, setPrintedSaleIds] = useState(() => {
+    try {
+      return new Set(
+        JSON.parse(localStorage.getItem("agent_printed_sales") || "[]")
+      );
+    } catch {
+      return new Set();
+    }
+  });
+
+  // LocalStorage'ga saqlash
+  const persistSets = (set, key) => {
+    localStorage.setItem(key, JSON.stringify(Array.from(set)));
+  };
+
+  // Yangi deb belgilash
+  const markAsNew = (id) => {
+    setNewSaleIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      persistSets(next, "agent_new_sales");
+      return next;
+    });
+    // Agar chop etilgan ro'yxatida bo'lsa, uni o'chirish
+    setPrintedSaleIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      persistSets(next, "agent_printed_sales");
+      return next;
+    });
+  };
+
+  // Chop etilgan deb belgilash
+  const markAsPrinted = (id) => {
+    if (!id) return;
+
+    setPrintedSaleIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      persistSets(next, "agent_printed_sales");
+      return next;
+    });
+
+    // Yangi ro'yxatidan o'chirish
+    setNewSaleIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      persistSets(next, "agent_new_sales");
+      return next;
+    });
+  };
+
+  // Orqaga qaytish
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate("/");
@@ -43,17 +109,20 @@ export default function AgentOrders() {
     skip: !selectedSaleId,
   });
 
-  // Print
+  // ✅ Chek chiqarish va qizilga o'tkazish
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Agent-Faktura-${new Date().toLocaleDateString()}`,
+    documentTitle: `Agent-Faktura-${dayjs().format("DD-MM-YYYY")}`,
     onAfterPrint: () => {
-      message.success("Faktura chop etildi");
+      message.success("✅ Faktura muvaffaqiyatli chop etildi");
+      if (selectedSaleId) {
+        markAsPrinted(selectedSaleId); // ✅ Chek chiqqach qizil rangga o'tkazish
+      }
       setSelectedSaleId(null);
     },
     onPrintError: (error) => {
       console.error("Print error:", error);
-      message.error("Chop etishda xatolik yuz berdi");
+      message.error("❌ Chop etishda xatolik yuz berdi");
     },
   });
 
@@ -68,7 +137,6 @@ export default function AgentOrders() {
   const agentOptions = useMemo(() => {
     const map = new Map();
     for (const s of baseSales) {
-      // Agent_id dan yoki agent_info dan ma'lumot olish
       const agentData = s.agent_id || s.agent_info;
       if (agentData) {
         const agentId = s.agent_id?._id || s.agent_info?.name || "unknown";
@@ -98,7 +166,7 @@ export default function AgentOrders() {
     });
   }, [baseSales, agentFilter]);
 
-  // SOCKET connection
+  // ✅ Socket connection va yangi sotuv kuzatuvi
   useEffect(() => {
     const socket = io("wss://sklad.richman.uz", {
       transports: ["websocket"],
@@ -109,89 +177,92 @@ export default function AgentOrders() {
     });
 
     socket.on("connect", () => {
-      console.log("Socket ulandi:", socket.id);
+      console.log("✅ Socket ulandi:", socket.id);
       setSocketConnected(true);
-
-      // Adminlar roomiga qo'shilish
       socket.emit("join_admin_room");
-
-      message.success("Real-time rejim yoqildi");
+      message.success("🔗 Real-time rejim yoqildi");
     });
 
     socket.on("disconnect", (reason) => {
-      console.log("Socket uzildi:", reason);
+      console.log("❌ Socket uzildi:", reason);
       setSocketConnected(false);
-      message.warning("Real-time rejim uzildi");
+      message.warning("⚠️ Real-time rejim uzildi");
     });
 
     socket.on("connect_error", (err) => {
-      console.error("Socket xatoligi:", err);
+      console.error("❌ Socket xatoligi:", err);
       setSocketConnected(false);
-      message.error("Real-time rejimga ulanishda muammo");
+      message.error("🚫 Real-time rejimga ulanishda muammo");
     });
 
-    // YANGI BACKEND EVENT NOMI
+    // 🔔 Yangi agent sotuv bildirishi
     socket.on("new_sale_notification", (payload) => {
-      console.log("Yangi sotuv notification:", payload);
+      console.log("🆕 Yangi sotuv notification:", payload);
 
-      const { sale, agent, message: saleMessage, type } = payload;
+      const { sale, agent, type } = payload;
 
-      // Faqat agent sotuvlari uchun
-      if (type === "agent_sale" && sale) {
-        // Ovozli bildirishnoma
+      if (type === "agent_sale" && sale && sale._id) {
+        // Audio o'ynash
         try {
           audioRef.current?.play();
         } catch (err) {
-          console.log("Audio o'ynashda xatolik:", err);
+          console.log("🔊 Audio o'ynashda xatolik:", err);
         }
 
-        // Popup notification
+        // Bildirish
         notification.success({
-          message: "Yangi Agent Sotuvi!",
+          message: "🎉 Yangi Agent Sotuvi!",
           description: (
             <div>
               <div>
-                <strong>Agent:</strong> {agent?.name || "Noma'lum"}
+                <strong>👤 Agent:</strong> {agent?.name || "Noma'lum"}
               </div>
               <div>
-                <strong>Summa:</strong>{" "}
+                <strong>💰 Summa:</strong>{" "}
                 {(sale.total_amount || 0).toLocaleString()} so'm
               </div>
               <div>
-                <strong>Mijoz:</strong> {sale.customer_id?.name || "Noma'lum"}
+                <strong>🤝 Mijoz:</strong>{" "}
+                {sale.customer_id?.name || "Noma'lum"}
               </div>
             </div>
           ),
           placement: "topRight",
-          duration: 8, // 8 soniya ko'rsatilsin
+          duration: 10,
           style: {
             backgroundColor: "#f6ffed",
-            border: "1px solid #b7eb8f",
+            border: "2px solid #52c41a",
+            borderRadius: "8px",
           },
         });
 
-        // Counter yangilash
+        // ✅ Yangi sotuv sifatida belgilash (yashil rang)
+        markAsNew(sale._id);
         setNewOrdersCount((prev) => prev + 1);
 
-        // Auto-print yoki foydalanuvchi tanloviga qoldirish
+        // Avtomatik chek chiqarish taklifi
         if (
           window.confirm(
-            `Yangi agent sotuvi keldi!\nDarhol chek chiqarilsinmi?`
+            `🆕 Yangi agent sotuvi keldi!\n\n👤 Agent: ${
+              agent?.name || "Noma'lum"
+            }\n💰 Summa: ${(
+              sale.total_amount || 0
+            ).toLocaleString()} so'm\n\n📄 Darhol chek chiqarilsinmi?`
           )
         ) {
           setSelectedSaleId(sale._id);
           setTimeout(() => handlePrint(), 500);
         }
 
-        // Ma'lumotlarni yangilash
         refetch();
       }
     });
 
-    // Umumiy sotuv eventlari ham
+    // Umumiy sotuv yaratilishi
     socket.on("sale_created", (payload) => {
-      console.log("Sotuv yaratildi:", payload);
-      if (payload.sale_type === "agent") {
+      console.log("💾 Sotuv yaratildi:", payload);
+      if (payload?.sale_type === "agent" && payload?._id) {
+        markAsNew(payload._id);
         setNewOrdersCount((prev) => prev + 1);
         refetch();
       }
@@ -202,31 +273,28 @@ export default function AgentOrders() {
       socket.off("sale_created");
       socket.disconnect();
     };
-  }, [refetch, handlePrint]);
+  }, [refetch]);
 
-  // Yangi orderlar counterini reset qilish
-  const resetNewOrdersCount = () => {
-    setNewOrdersCount(0);
-  };
+  const resetNewOrdersCount = () => setNewOrdersCount(0);
 
+  // ✅ Jadval ustunlari
   const columns = [
     {
-      title: "Sana",
+      title: "📅 Sana",
       dataIndex: "createdAt",
       render: (d) => dayjs(d).format("DD.MM.YYYY HH:mm"),
       sorter: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      width: 130,
     },
     {
-      title: "Agent",
+      title: "👤 Agent",
       key: "agent",
       render: (_, record) => {
-        // Agent ma'lumotini agent_id yoki agent_info dan olish
         const agentData = record.agent_id || record.agent_info;
         if (!agentData) return <Tag color="default">Admin sotuvi</Tag>;
 
         const name = agentData.name || "Noma'lum";
         const phone = agentData.phone || "";
-        const location = agentData.location || "";
 
         return (
           <div>
@@ -234,25 +302,23 @@ export default function AgentOrders() {
             {phone && (
               <div style={{ fontSize: "12px", color: "#666" }}>📞 {phone}</div>
             )}
-            {location && (
-              <div style={{ fontSize: "12px", color: "#666" }}>
-                📍 {location}
-              </div>
-            )}
+         
           </div>
         );
       },
+      width: 150,
     },
     {
-      title: "Mijoz",
+      title: "🤝 Mijoz",
       key: "customer",
       render: (_, record) => {
         const customer = record.customer_id;
         if (!customer) return "Noma'lum";
-
         return (
           <div>
-            <div>{customer.name || "Noma'lum"}</div>
+            <div style={{ fontWeight: "500" }}>
+              {customer.name || "Noma'lum"}
+            </div>
             {customer.phone && (
               <div style={{ fontSize: "12px", color: "#666" }}>
                 📞 {customer.phone}
@@ -261,9 +327,10 @@ export default function AgentOrders() {
           </div>
         );
       },
+      width: 130,
     },
     {
-      title: "Mahsulotlar",
+      title: "📦 Mahsulotlar",
       dataIndex: "products",
       render: (products) => (
         <div style={{ fontSize: "12px" }}>
@@ -273,36 +340,45 @@ export default function AgentOrders() {
             </div>
           ))}
           {products && products.length > 2 && (
-            <div style={{ color: "#666" }}>
+            <div style={{ color: "#666", fontStyle: "italic" }}>
               ... va {products.length - 2} ta ko'proq
             </div>
           )}
         </div>
       ),
+      width: 200,
     },
     {
-      title: "To'lov",
+      title: "💳 To'lov",
       dataIndex: "payment_method",
       render: (method, record) => {
         let color = "green";
         let text = method || "naqd";
+        let icon = "💵";
 
         if (record.remaining_debt > 0) {
           color = "red";
           text = "qarz";
+          icon = "📝";
         } else if (method === "card") {
           color = "blue";
+          icon = "💳";
         }
 
-        return <Tag color={color}>{text.toUpperCase()}</Tag>;
+        return (
+          <Tag color={color}>
+            {icon} {text.toUpperCase()}
+          </Tag>
+        );
       },
+      width: 100,
     },
     {
-      title: "Summa",
+      title: "💰 Summa",
       key: "amounts",
       render: (_, record) => (
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontWeight: "bold" }}>
+          <div style={{ fontWeight: "bold", fontSize: "14px" }}>
             {(record.total_amount || 0).toLocaleString()} so'm
           </div>
           {record.remaining_debt > 0 && (
@@ -313,27 +389,81 @@ export default function AgentOrders() {
         </div>
       ),
       sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
+      width: 130,
     },
     {
-      title: "Amallar",
+      title: "📊 Status",
+      key: "status",
+      render: (_, record) => {
+        if (newSaleIds.has(record._id)) {
+          return <Tag color="green">🆕 Yangi</Tag>;
+        }
+        if (printedSaleIds.has(record._id)) {
+          return <Tag color="red">✅ Chop etilgan</Tag>;
+        }
+        return <Tag color="default">⏳ Kutilmoqda</Tag>;
+      },
+      width: 120,
+    },
+    {
+      title: "🛠️ Amallar",
       key: "actions",
-      render: (_, record) => (
-        <Button
-          type="primary"
-          size="small"
-          onClick={() => {
-            setSelectedSaleId(record._id);
-            setTimeout(() => handlePrint(), 300);
-          }}
-        >
-          📄 Chek
-        </Button>
-      ),
+      render: (_, record) => {
+        const isPrinted = printedSaleIds.has(record._id);
+        const isNew = newSaleIds.has(record._id);
+
+        return (
+          <Tooltip title={isPrinted ? "Qayta chop etish" : "Chek chiqarish"}>
+            <Button
+              type={isNew ? "primary" : isPrinted ? "default" : "primary"}
+              size="small"
+              icon={<PrinterOutlined />}
+              onClick={() => {
+                setSelectedSaleId(record._id);
+                setTimeout(() => handlePrint(), 300);
+              }}
+              style={{
+                backgroundColor: isNew ? "#52c41a" : undefined,
+                borderColor: isNew ? "#52c41a" : undefined,
+              }}
+            >
+              {isPrinted ? "Qayta chop" : "📄 Chek"}
+            </Button>
+          </Tooltip>
+        );
+      },
+      width: 120,
     },
   ];
 
   return (
     <div style={{ padding: 20 }}>
+      {/* ✅ Jadval qatorlari ranglari uchun CSS */}
+      <style>
+        {`
+          .row-new {
+            background: #f6ffed !important; /* yashil fon (yangi) */
+            border-left: 4px solid #52c41a !important;
+          }
+          .row-printed {
+            background: #fff1f0 !important; /* qizil fon (chop etilgan) */
+            border-left: 4px solid #ff4d4f !important;
+          }
+          .ant-table-tbody > tr.row-new:hover > td {
+            background: #eafff1 !important;
+          }
+          .ant-table-tbody > tr.row-printed:hover > td {
+            background: #ffe7e6 !important;
+          }
+          .ant-table-tbody > tr.row-new > td:first-child {
+            border-left: 4px solid #52c41a;
+          }
+          .ant-table-tbody > tr.row-printed > td:first-child {
+            border-left: 4px solid #ff4d4f;
+          }
+        `}
+      </style>
+
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Space align="center">
@@ -341,22 +471,29 @@ export default function AgentOrders() {
               onClick={goBack}
               icon={<ArrowLeftOutlined />}
               type="default"
+              size="large"
             >
               Orqaga
             </Button>
             <div>
-              <h2 style={{ margin: 0 }}>
-                Agent Sotuvlari
+              <h2 style={{ margin: 0, fontSize: "24px" }}>
+                📋 Agent Sotuvlari
                 {newOrdersCount > 0 && (
                   <Badge
                     count={newOrdersCount}
-                    style={{ marginLeft: 8 }}
+                    style={{
+                      marginLeft: 12,
+                      background: "#52c41a",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                    }}
                     onClick={resetNewOrdersCount}
+                    title="Yangi buyurtmalar sonini tozalash uchun bosing"
                   />
                 )}
               </h2>
-              <div style={{ color: "#888", fontSize: 12 }}>
-                Agentlar tomonidan amalga oshirilgan sotuvlar
+              <div style={{ color: "#888", fontSize: 14, marginTop: 4 }}>
+                🎯 Agentlar tomonidan amalga oshirilgan sotuvlar
                 {socketConnected ? (
                   <Tag color="green" size="small" style={{ marginLeft: 8 }}>
                     ● Real-time
@@ -371,18 +508,87 @@ export default function AgentOrders() {
           </Space>
         </Col>
         <Col>
-          <Space>
-            <span>Agent:</span>
-            <Select
-              style={{ minWidth: 250 }}
-              options={agentOptions}
-              value={agentFilter}
-              onChange={setAgentFilter}
-              placeholder="Agent tanlang"
-              showSearch
-              optionFilterProp="label"
-            />
+          <Space size="large">
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "12px", color: "#666" }}>
+                Jami sotuvlar
+              </div>
+              <div
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  color: "#1677ff",
+                }}
+              >
+                {sales.length}
+              </div>
+            </div>
+            <div>
+              <span style={{ marginRight: 8, fontWeight: "500" }}>
+                🔍 Agent:
+              </span>
+              <Select
+                style={{ minWidth: 280 }}
+                options={agentOptions}
+                value={agentFilter}
+                onChange={setAgentFilter}
+                placeholder="Agent tanlang..."
+                showSearch
+                optionFilterProp="label"
+                size="large"
+              />
+            </div>
           </Space>
+        </Col>
+      </Row>
+
+      {/* ✅ Ranglar haqida ma'lumot */}
+      <Row style={{ marginBottom: 16 }}>
+        <Col span={24}>
+          <div
+            style={{
+              background: "#f0f0f0",
+              padding: "8px 16px",
+              borderRadius: "6px",
+              fontSize: "12px",
+              color: "#666",
+            }}
+          >
+            💡 <strong>Ranglar ma'nosi:</strong>
+            <span
+              style={{
+                background: "#f6ffed",
+                padding: "2px 8px",
+                margin: "0 4px",
+                borderRadius: "4px",
+                border: "1px solid #b7eb8f",
+              }}
+            >
+              🟢 Yashil - Yangi kelgan
+            </span>
+            <span
+              style={{
+                background: "#fff1f0",
+                padding: "2px 8px",
+                margin: "0 4px",
+                borderRadius: "4px",
+                border: "1px solid #e27272ff",
+              }}
+            >
+              🔴 Qizil - Chop etilgan
+            </span>
+            <span
+              style={{
+                background: "#fafafa",
+                padding: "2px 8px",
+                margin: "0 4px",
+                borderRadius: "4px",
+                border: "1px solid #d9d9d9",
+              }}
+            >
+              ⚪ Oddiy - Eski
+            </span>
+          </div>
         </Col>
       </Row>
 
@@ -392,59 +598,140 @@ export default function AgentOrders() {
         columns={columns}
         dataSource={sales}
         pagination={{
-          pageSize: 20,
+          pageSize: 15,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total, range) =>
-            `${range[0]}-${range[1]} / ${total} ta sotuv`,
+            `📊 ${range[0]}-${range[1]} / ${total} ta sotuv`,
+          pageSizeOptions: ["10", "15", "25", "50", "100"],
         }}
+        rowClassName={(record) => {
+          if (newSaleIds.has(record._id)) return "row-new";
+          if (printedSaleIds.has(record._id)) return "row-printed";
+          return "";
+        }}
+        scroll={{ x: 1200 }}
         expandable={{
           expandedRowRender: (record) => (
-            <div style={{ padding: 16, background: "#fafafa" }}>
-              <h4>Mahsulotlar ro'yxati:</h4>
+            <div
+              style={{
+                padding: 16,
+                background: "#fafafa",
+                borderRadius: "8px",
+                margin: "8px 0",
+              }}
+            >
+              <h4 style={{ marginBottom: 12, color: "#1677ff" }}>
+                📦 Mahsulotlar ro'yxati:
+              </h4>
               {record.products?.map((p, i) => (
                 <div
                   key={i}
                   style={{
                     marginBottom: 8,
-                    padding: 8,
+                    padding: 12,
                     background: "white",
-                    borderRadius: 4,
+                    borderRadius: 6,
+                    border: "1px solid #e8e8e8",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
                   }}
                 >
-                  <strong>{p.name}</strong>
-                  {p.model && (
-                    <span style={{ color: "#666" }}> (Model: {p.model})</span>
-                  )}
-                  <br />
-                  <span>
-                    {p.quantity} {p.unit} × {(p.price || 0).toLocaleString()}{" "}
-                    so'm ={" "}
-                    <strong>
-                      {((p.price || 0) * (p.quantity || 0)).toLocaleString()}{" "}
-                      so'm
-                    </strong>
-                  </span>
-                  {p.partiya_number && (
-                    <span style={{ color: "#666", fontSize: "12px" }}>
-                      {" "}
-                      (Partiya: #{p.partiya_number})
-                    </span>
-                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div>
+                      <strong style={{ fontSize: "14px", color: "#1677ff" }}>
+                        {p.name}
+                      </strong>
+                      {p.model && (
+                        <span style={{ color: "#666", marginLeft: 8 }}>
+                          (Model: {p.model})
+                        </span>
+                      )}
+                      {p.partiya_number && (
+                        <div
+                          style={{
+                            color: "#666",
+                            fontSize: "12px",
+                            marginTop: 4,
+                          }}
+                        >
+                          📋 Partiya: #{p.partiya_number}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "14px" }}>
+                        {p.quantity} {p.unit} ×{" "}
+                        {(p.price || 0).toLocaleString()} so'm
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "16px",
+                          fontWeight: "bold",
+                          color: "#52c41a",
+                        }}
+                      >
+                        ={" "}
+                        {((p.price || 0) * (p.quantity || 0)).toLocaleString()}{" "}
+                        so'm
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
+
+              {/* Jami summa */}
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: 12,
+                  background: "#e6f7ff",
+                  borderRadius: 6,
+                  textAlign: "right",
+                  border: "1px solid #91d5ff",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    color: "#1677ff",
+                  }}
+                >
+                  💰 Jami: {(record.total_amount || 0).toLocaleString()} so'm
+                </div>
+                {record.remaining_debt > 0 && (
+                  <div style={{ fontSize: "14px", color: "red", marginTop: 4 }}>
+                    📝 Qarz: {record.remaining_debt.toLocaleString()} so'm
+                  </div>
+                )}
+              </div>
             </div>
+          ),
+          expandIcon: ({ expanded, onExpand, record }) => (
+            <Button
+              type="link"
+              size="small"
+              onClick={(e) => onExpand(record, e)}
+              style={{ color: expanded ? "#ff4d4f" : "#1677ff" }}
+            >
+              {expanded ? "📤 Yashirish" : "📥 Batafsil"}
+            </Button>
           ),
         }}
       />
 
-      {/* Faktura print (yashirin) */}
+      {/* ✅ Yashirin faktura print */}
       <div style={{ display: "none" }}>
         {invoiceData?.invoice && (
           <InvoicePrint
             ref={printRef}
             sale={{
-              // API dan kelgan ma'lumotlarni InvoicePrint format ga moslashtirish
               _id: selectedSaleId,
               createdAt: invoiceData.invoice.date,
               total_amount: invoiceData.invoice.payment.total_amount,
@@ -453,18 +740,10 @@ export default function AgentOrders() {
               payment_method: invoiceData.invoice.payment.payment_method,
               check_number: invoiceData.invoice.check_number,
               invoice_number: invoiceData.invoice.invoice_number,
-
-              // Customer ma'lumotlarini to'g'ri formatda
               customer: invoiceData.invoice.customer,
               customer_id: invoiceData.invoice.customer,
-
-              // Products ma'lumotlarini to'g'ri formatda
               products: invoiceData.invoice.products,
-
-              // Shop ma'lumotlarini
               shop_info: invoiceData.invoice.shop,
-
-              // Agent ma'lumotlarini (agar mavjud bo'lsa)
               ...(invoiceData.invoice.isAgentSale && {
                 agent_id: invoiceData.invoice.agent_id,
                 agent_info: invoiceData.invoice.agent_info,
@@ -473,8 +752,6 @@ export default function AgentOrders() {
                 sale_type: invoiceData.invoice.sale_type,
                 seller: invoiceData.invoice.seller,
               }),
-
-              // Default qiymatlar (agar agent bo'lmasa)
               ...(!invoiceData.invoice.isAgentSale && {
                 seller: invoiceData.invoice.seller || "Admin",
               }),
