@@ -167,6 +167,20 @@ export const salesApi = apiSlice.injectEndpoints({
         { type: "Sales", id: "LIST" },
       ],
     }),
+    /**
+     * 🖨 Sotuvni chop etilgan deb belgilash
+     * PATCH /api/sales/:id/print
+     */
+    markAsPrinted: builder.mutation({
+      query: (id) => ({
+        url: `/api/sales/${id}/print`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (r, e, id) => [
+        { type: "Sales", id },
+        { type: "Sales", id: "LIST" },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -182,5 +196,6 @@ export const {
   useGetDebtorsQuery,
   usePayDebtMutation,
   useGetSalesStatsQuery,
-  useApproveSaleMutation, // 🔥 qo‘shildi
+  useApproveSaleMutation,
+  useMarkAsPrintedMutation, // 🔥 qo‘shildi
 } = salesApi;

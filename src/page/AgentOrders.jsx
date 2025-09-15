@@ -17,6 +17,7 @@ import dayjs from "dayjs";
 import {
   useGetAllSalesQuery,
   useGetSaleInvoiceQuery,
+  useMarkAsPrintedMutation, // 🔥 Backend API hook
 } from "../context/service/sales.service";
 import { useReactToPrint } from "react-to-print";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
@@ -33,70 +34,11 @@ export default function AgentOrders() {
   const navigate = useNavigate();
   const audioRef = useRef(new Audio("/notification-sound.mp3"));
 
-  // ✅ Yangi (yashil) va chop etilgan (qizil) sotuv IDlarini saqlash
-  const [newSaleIds, setNewSaleIds] = useState(() => {
-    try {
-      return new Set(
-        JSON.parse(localStorage.getItem("agent_new_sales") || "[]")
-      );
-    } catch {
-      return new Set();
-    }
-  });
+  // 🔥 Backend API mutation hook
+  const [markAsPrintedAPI] = useMarkAsPrintedMutation();
 
-  const [printedSaleIds, setPrintedSaleIds] = useState(() => {
-    try {
-      return new Set(
-        JSON.parse(localStorage.getItem("agent_printed_sales") || "[]")
-      );
-    } catch {
-      return new Set();
-    }
-  });
-
-  // LocalStorage'ga saqlash
-  const persistSets = (set, key) => {
-    localStorage.setItem(key, JSON.stringify(Array.from(set)));
-  };
-
-  // Yangi deb belgilash
-  const markAsNew = (id) => {
-    setNewSaleIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      persistSets(next, "agent_new_sales");
-      return next;
-    });
-    // Agar chop etilgan ro'yxatida bo'lsa, uni o'chirish
-    setPrintedSaleIds((prev) => {
-      if (!prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.delete(id);
-      persistSets(next, "agent_printed_sales");
-      return next;
-    });
-  };
-
-  // Chop etilgan deb belgilash
-  const markAsPrinted = (id) => {
-    if (!id) return;
-
-    setPrintedSaleIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      persistSets(next, "agent_printed_sales");
-      return next;
-    });
-
-    // Yangi ro'yxatidan o'chirish
-    setNewSaleIds((prev) => {
-      if (!prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.delete(id);
-      persistSets(next, "agent_new_sales");
-      return next;
-    });
-  };
+  // ✅ Yangi (yashil) sotuv IDlarini saqlash (faqat real-time uchun)
+  const [newSaleIds, setNewSaleIds] = useState(new Set());
 
   // Orqaga qaytish
   const goBack = () => {
@@ -109,15 +51,39 @@ export default function AgentOrders() {
     skip: !selectedSaleId,
   });
 
-  // ✅ Chek chiqarish va qizilga o'tkazish
+  // 🔥 Backend orqali chop etilgan deb belgilash
+  const markAsPrintedInBackend = async (saleId) => {
+    try {
+      await markAsPrintedAPI(saleId).unwrap();
+      message.success("✅ Faktura holati yangilandi");
+
+      // Local state dan yangi sotuv belgilarini olib tashlash
+      setNewSaleIds((prev) => {
+        const next = new Set(prev);
+        next.delete(saleId);
+        return next;
+      });
+
+      // Ma'lumotlarni qayta yuklash
+      refetch();
+    } catch (error) {
+      console.error("Print status update error:", error);
+      message.error("❌ Print holatini yangilashda xatolik");
+    }
+  };
+
+  // ✅ Chek chiqarish va backend ga status yuborish
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Agent-Faktura-${dayjs().format("DD-MM-YYYY")}`,
-    onAfterPrint: () => {
+    onAfterPrint: async () => {
       message.success("✅ Faktura muvaffaqiyatli chop etildi");
+
       if (selectedSaleId) {
-        markAsPrinted(selectedSaleId); // ✅ Chek chiqqach qizil rangga o'tkazish
+        // 🔥 Backend ga print holati yuborish
+        await markAsPrintedInBackend(selectedSaleId);
       }
+
       setSelectedSaleId(null);
     },
     onPrintError: (error) => {
@@ -236,8 +202,12 @@ export default function AgentOrders() {
           },
         });
 
-        // ✅ Yangi sotuv sifatida belgilash (yashil rang)
-        markAsNew(sale._id);
+        // ✅ Faqat real-time uchun yangi sotuv sifatida belgilash (yashil rang)
+        setNewSaleIds((prev) => {
+          const next = new Set(prev);
+          next.add(sale._id);
+          return next;
+        });
         setNewOrdersCount((prev) => prev + 1);
 
         // Avtomatik chek chiqarish taklifi
@@ -262,7 +232,11 @@ export default function AgentOrders() {
     socket.on("sale_created", (payload) => {
       console.log("💾 Sotuv yaratildi:", payload);
       if (payload?.sale_type === "agent" && payload?._id) {
-        markAsNew(payload._id);
+        setNewSaleIds((prev) => {
+          const next = new Set(prev);
+          next.add(payload._id);
+          return next;
+        });
         setNewOrdersCount((prev) => prev + 1);
         refetch();
       }
@@ -276,6 +250,37 @@ export default function AgentOrders() {
   }, [refetch]);
 
   const resetNewOrdersCount = () => setNewOrdersCount(0);
+
+  // 🔥 Print status aniqlovchi funksiya
+  const getPrintStatus = (record) => {
+    // Real-time yangi kelgan sotuvlar
+    if (newSaleIds.has(record._id)) {
+      return {
+        type: "new",
+        color: "green",
+        text: "🆕 Yangi",
+        bgClass: "row-new",
+      };
+    }
+
+    // Backend dan kelayotgan print_status ni tekshirish
+    if (record.print_status === "printed") {
+      return {
+        type: "printed",
+        color: "red",
+        text: "✅ Chop etilgan",
+        bgClass: "row-printed",
+      };
+    }
+
+    // Default holat
+    return {
+      type: "pending",
+      color: "default",
+      text: "⏳ Kutilmoqda",
+      bgClass: "",
+    };
+  };
 
   // ✅ Jadval ustunlari
   const columns = [
@@ -302,7 +307,6 @@ export default function AgentOrders() {
             {phone && (
               <div style={{ fontSize: "12px", color: "#666" }}>📞 {phone}</div>
             )}
-         
           </div>
         );
       },
@@ -395,13 +399,8 @@ export default function AgentOrders() {
       title: "📊 Status",
       key: "status",
       render: (_, record) => {
-        if (newSaleIds.has(record._id)) {
-          return <Tag color="green">🆕 Yangi</Tag>;
-        }
-        if (printedSaleIds.has(record._id)) {
-          return <Tag color="red">✅ Chop etilgan</Tag>;
-        }
-        return <Tag color="default">⏳ Kutilmoqda</Tag>;
+        const status = getPrintStatus(record);
+        return <Tag color={status.color}>{status.text}</Tag>;
       },
       width: 120,
     },
@@ -409,8 +408,9 @@ export default function AgentOrders() {
       title: "🛠️ Amallar",
       key: "actions",
       render: (_, record) => {
-        const isPrinted = printedSaleIds.has(record._id);
-        const isNew = newSaleIds.has(record._id);
+        const status = getPrintStatus(record);
+        const isPrinted = status.type === "printed";
+        const isNew = status.type === "new";
 
         return (
           <Tooltip title={isPrinted ? "Qayta chop etish" : "Chek chiqarish"}>
@@ -606,9 +606,8 @@ export default function AgentOrders() {
           pageSizeOptions: ["10", "15", "25", "50", "100"],
         }}
         rowClassName={(record) => {
-          if (newSaleIds.has(record._id)) return "row-new";
-          if (printedSaleIds.has(record._id)) return "row-printed";
-          return "";
+          const status = getPrintStatus(record);
+          return status.bgClass;
         }}
         scroll={{ x: 1200 }}
         expandable={{
