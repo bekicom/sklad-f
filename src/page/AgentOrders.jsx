@@ -85,6 +85,8 @@ export default function AgentOrders() {
       }
 
       setSelectedSaleId(null);
+      // 🔄 Sahifani yangilash
+      window.location.reload();
     },
     onPrintError: (error) => {
       console.error("Print error:", error);
