@@ -30,6 +30,17 @@ export default function AgentOrders() {
   const [agentFilter, setAgentFilter] = useState("all");
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [socketConnected, setSocketConnected] = useState(false);
+
+  // 🔥 Pagination state'ini localStorage'dan yuklash
+  const [currentPage, setCurrentPage] = useState(() => {
+    const savedPage = localStorage.getItem("agentOrdersCurrentPage");
+    return savedPage ? parseInt(savedPage) : 1;
+  });
+  const [pageSize, setPageSize] = useState(() => {
+    const savedPageSize = localStorage.getItem("agentOrdersPageSize");
+    return savedPageSize ? parseInt(savedPageSize) : 15;
+  });
+
   const printRef = useRef(null);
   const navigate = useNavigate();
   const audioRef = useRef(new Audio("/notification-sound.mp3"));
@@ -39,6 +50,15 @@ export default function AgentOrders() {
 
   // ✅ Yangi (yashil) sotuv IDlarini saqlash (faqat real-time uchun)
   const [newSaleIds, setNewSaleIds] = useState(new Set());
+
+  // 🔥 Pagination state'ini localStorage'da saqlash
+  useEffect(() => {
+    localStorage.setItem("agentOrdersCurrentPage", currentPage.toString());
+  }, [currentPage]);
+
+  useEffect(() => {
+    localStorage.setItem("agentOrdersPageSize", pageSize.toString());
+  }, [pageSize]);
 
   // Orqaga qaytish
   const goBack = () => {
@@ -85,7 +105,7 @@ export default function AgentOrders() {
       }
 
       setSelectedSaleId(null);
-      // 🔄 Sahifani yangilash
+      // 🔄 Sahifani yangilash - pagination saqlanadi
       window.location.reload();
     },
     onPrintError: (error) => {
@@ -282,6 +302,15 @@ export default function AgentOrders() {
       text: "⏳ Kutilmoqda",
       bgClass: "",
     };
+  };
+
+  // 🔥 Pagination o'zgarishini kuzatish
+  const handlePaginationChange = (page, size) => {
+    setCurrentPage(page);
+    if (size !== pageSize) {
+      setPageSize(size);
+      setCurrentPage(1); // Page size o'zgarganda 1-pagega qaytish
+    }
   };
 
   // ✅ Jadval ustunlari
@@ -600,12 +629,15 @@ export default function AgentOrders() {
         columns={columns}
         dataSource={sales}
         pagination={{
-          pageSize: 15,
+          current: currentPage,
+          pageSize: pageSize,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total, range) =>
             `📊 ${range[0]}-${range[1]} / ${total} ta sotuv`,
           pageSizeOptions: ["10", "15", "25", "50", "100"],
+          onChange: handlePaginationChange,
+          onShowSizeChange: handlePaginationChange,
         }}
         rowClassName={(record) => {
           const status = getPrintStatus(record);
