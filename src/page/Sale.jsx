@@ -56,20 +56,21 @@ export default function Sale() {
     setCategory("Barchasi");
   };
 
-  const filteredProducts = useMemo(() => {
-    if (!productsData || productsData.length === 0) return [];
-    return productsData.filter((p) => {
-      // 🔑 Omborda qolmagan mahsulotlarni chiqarib tashlaymiz
-      if (p.quantity <= 0) return false;
+ const filteredProducts = useMemo(() => {
+   if (!productsData || productsData.length === 0) return [];
+   return productsData.filter((p) => {
+     // 🔑 Omborda qolmagan mahsulotlarni chiqarib tashlaymiz
+     // 0.1 dan kam bo'lsa ham ko'rsatmaymiz
+     if (!p.quantity || p.quantity < 0.1) return false;
 
-      const matchesSearch = p.product_name
-        ?.toLowerCase()
-        .includes(search.toLowerCase());
-      const matchesCategory =
-        category === "Barchasi" || p.product_name === category;
-      return matchesSearch && matchesCategory;
-    });
-  }, [productsData, search, category]);
+     const matchesSearch = p.product_name
+       ?.toLowerCase()
+       .includes(search.toLowerCase());
+     const matchesCategory =
+       category === "Barchasi" || p.product_name === category;
+     return matchesSearch && matchesCategory;
+   });
+ }, [productsData, search, category]);
 
   const isWeightUnit = (unit) => {
     return ["kg", "litr", "metr", "l", "m"].includes(unit?.toLowerCase());
