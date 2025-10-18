@@ -55,12 +55,21 @@ export default function AgentSalesDetail() {
     }
 
     // 📊 Statistika hisoblash
+    // 📊 Statistika hisoblash
     const statistics = filtered.reduce(
       (acc, s) => {
         acc.total += s.total_amount || 0;
         acc.paid += s.paid_amount || 0;
         acc.debt += s.remaining_debt || 0;
         acc.count += 1;
+
+        // 🔹 Foyda hisoblash (har bir mahsulot bo‘yicha)
+        s.products?.forEach((p) => {
+          const sell = Number(p.price || 0);
+          const buy = Number(p.purchase_price || 0);
+          const qty = Number(p.quantity || 0);
+          acc.profit += (sell - buy) * qty;
+        });
 
         // To'lov turlari bo'yicha
         if (s.remaining_debt > 0) {
@@ -73,7 +82,16 @@ export default function AgentSalesDetail() {
 
         return acc;
       },
-      { total: 0, cash: 0, card: 0, debt: 0, paid: 0, debtSales: 0, count: 0 }
+      {
+        total: 0,
+        cash: 0,
+        card: 0,
+        debt: 0,
+        paid: 0,
+        debtSales: 0,
+        count: 0,
+        profit: 0,
+      }
     );
 
     // Agent ma'lumotlari (birinchi sotuvdan olish)
@@ -445,6 +463,33 @@ export default function AgentSalesDetail() {
             />
             <div style={{ fontSize: "12px", opacity: 0.8, marginTop: 4 }}>
               Qarz sotuvlar
+            </div>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card
+            size="small"
+            style={{
+              background: "linear-gradient(135deg, #722ed1, #9254de)",
+              borderRadius: 12,
+              textAlign: "center",
+              color: "white",
+              boxShadow: "0 4px 12px rgba(114, 46, 209, 0.3)",
+            }}
+          >
+            <Statistic
+              title={
+                <span style={{ color: "white", opacity: 0.9 }}>
+                  💹 Sof Foyda
+                </span>
+              }
+              value={stats.profit}
+              formatter={(value) => `${value.toLocaleString()}`}
+              suffix="so'm"
+              valueStyle={{ fontSize: 18, color: "white", fontWeight: "bold" }}
+            />
+            <div style={{ fontSize: "12px", opacity: 0.8, marginTop: 4 }}>
+              Sotuvdan olingan foyda
             </div>
           </Card>
         </Col>
