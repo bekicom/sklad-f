@@ -480,7 +480,7 @@ export default function AgentSalesDetail() {
             <Statistic
               title={
                 <span style={{ color: "white", opacity: 0.9 }}>
-                  💹 Sof Foyda
+                  💹 O'rtacha Sotuv
                 </span>
               }
               value={stats.profit}
