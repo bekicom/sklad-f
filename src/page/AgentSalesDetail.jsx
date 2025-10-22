@@ -488,9 +488,7 @@ export default function AgentSalesDetail() {
               suffix="so'm"
               valueStyle={{ fontSize: 18, color: "white", fontWeight: "bold" }}
             />
-            <div style={{ fontSize: "12px", opacity: 0.8, marginTop: 4 }}>
-              Sotuvdan olingan foyda
-            </div>
+         
           </Card>
         </Col>
       </Row>
