@@ -15,6 +15,20 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
   const finalAmount = totalAmount - discount;
   const debtAmount = Math.max(0, finalAmount - paidAmount);
 
+  // Previous debt: prefer explicit payment.previous_debt from invoice API, otherwise
+  // compute from customer.totalDebt - sale.remaining_debt when available
+  const previousDebt = (() => {
+    // 1) If backend provided it inside payment
+    if (sale.payment && typeof sale.payment.previous_debt !== "undefined") {
+      return Number(sale.payment.previous_debt) || 0;
+    }
+    // 2) Try to compute from populated customer totals
+    const cust = sale.customer || sale.customer_id || {};
+    const custTotalDebt = Number(cust.totalDebt || cust.totalDebt || cust.totalDebt || 0) || 0;
+    const rem = Number(sale.remaining_debt || sale.remainingDebt || 0) || 0;
+    const prev = Math.max(custTotalDebt - rem, 0);
+    return prev;
+  })();
   const checkNo =
     sale.checkNumber || sale.check_number || sale._id
       ? String(sale._id).slice(-6)
@@ -257,10 +271,11 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
               {fmt(paidAmount)} so'm
             </td>
           </tr>
+
           {debtAmount > 0 && (
             <tr style={{ backgroundColor: "#ffebee" }}>
               <td style={{ ...cellStyle, fontWeight: "bold", color: "red" }}>
-                Qarzi qoldi:
+                Yangi qarzi:
               </td>
               <td
                 style={{
@@ -274,6 +289,57 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
               </td>
             </tr>
           )}
+
+          {previousDebt > 0 && (
+            <tr>
+              <td
+                style={{ ...cellStyle, fontWeight: "bold", color: "#a8071a" }}
+              >
+                Oldingi qarz:
+              </td>
+              <td
+                style={{
+                  ...numberStyle,
+                  fontWeight: "bold",
+                  color: "#a8071a",
+                  backgroundColor: "#fff1f0",
+                  border: "1px solid #ffa39e",
+                  fontSize: "13px",
+                }}
+              >
+                {fmt(previousDebt)} so'm
+              </td>
+            </tr>
+          )}
+
+          {/* 🧮 Jami qarz satri (yangi + eski) */}
+          {(debtAmount > 0 || previousDebt > 0) && (
+            <tr>
+              <td
+                style={{
+                  ...cellStyle,
+                  fontWeight: "bold",
+                  color: "#cf1322",
+                  backgroundColor: "#fff2f0",
+                }}
+              >
+                Jami qarz:
+              </td>
+              <td
+                style={{
+                  ...numberStyle,
+                  fontWeight: "bold",
+                  color: "#cf1322",
+                  backgroundColor: "#fff2f0",
+                  fontSize: "15px",
+                  borderTop: "2px solid #ff4d4f",
+                }}
+              >
+                {fmt(previousDebt + debtAmount)} so'm
+              </td>
+            </tr>
+          )}
+
           <tr>
             <td style={cellStyle}>
               <strong>To'lov usuli:</strong>
