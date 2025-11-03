@@ -311,7 +311,7 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
               </td>
             </tr>
           )}
-
+{/* asas */}
           {/* 🧮 Jami qarz satri (yangi + eski) */}
           {(debtAmount > 0 || previousDebt > 0) && (
             <tr>
