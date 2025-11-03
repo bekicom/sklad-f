@@ -13,6 +13,7 @@ import {
 import dayjs from "dayjs";
 import { useGetCustomerSalesQuery } from "../context/service/customer.service";
 import { usePayCustomerDebtMutation } from "../context/service/debtor.service";
+import { useUpdateClientMutation } from "../context/service/client.service";
 
 const { Text } = Typography;
 
@@ -28,6 +29,13 @@ export default function Mijozlar() {
     customer: null,
     history: [],
   });
+  const [editModal, setEditModal] = useState({
+    open: false,
+    customer: null,
+    name: "",
+    phone: "",
+  });
+  const [updateClient, { isLoading: updating }] = useUpdateClientMutation();
   const [payCustomerDebt, { isLoading: paying }] = usePayCustomerDebtMutation();
   const [q, setQ] = useState("");
   const [customers, setCustomers] = useState([]);
@@ -306,6 +314,26 @@ export default function Mijozlar() {
       width: 140,
     },
     {
+      title: "Tahrirlash",
+      key: "edit",
+      width: 120,
+      render: (_, record) => (
+        <Button
+          size="small"
+          onClick={() =>
+            setEditModal({
+              open: true,
+              customer: record,
+              name: record.name || "",
+              phone: record.phone || "",
+            })
+          }
+        >
+          Tahrirlash
+        </Button>
+      ),
+    },
+    {
       title: "Amallar",
       key: "actions",
       width: 200,
@@ -343,6 +371,33 @@ export default function Mijozlar() {
       ),
     },
   ];
+
+  // 🔹 Mijozni tahrirlash
+  const handleEditSave = async () => {
+    const { customer, name, phone } = editModal;
+    if (!customer) return;
+    if (!name?.trim() || !phone?.trim()) {
+      message.error("Iltimos, mijoz nomi va telefonni kiriting");
+      return;
+    }
+
+    // optimistik yangilash
+    setCustomers((prev) =>
+      prev.map((c) =>
+        c._id === customer._id ? { ...c, name: name.trim(), phone: phone.trim() } : c
+      )
+    );
+
+    setEditModal({ open: false, customer: null, name: "", phone: "" });
+
+    try {
+      await updateClient({ id: customer._id, name: name.trim(), phone: phone.trim() }).unwrap();
+      message.success("Mijoz ma'lumotlari saqlandi");
+    } catch (err) {
+      message.error(err?.data?.message || "Mijozni yangilashda xatolik");
+      setCustomers(filteredCustomers);
+    }
+  };
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -420,6 +475,30 @@ export default function Mijozlar() {
         }
       >
         <PaymentHistoryTable history={historyModal.history} />
+      </Modal>
+
+      {/* Mijozni tahrirlash modali */}
+      <Modal
+        open={editModal.open}
+        title={`✏️ Mijozni tahrirlash — ${editModal.customer?.name || ""}`}
+        onCancel={() => setEditModal({ open: false, customer: null, name: "", phone: "" })}
+        onOk={handleEditSave}
+        confirmLoading={updating}
+        okText="Saqlash"
+        cancelText="Bekor qilish"
+      >
+        <div style={{ display: "grid", gap: 8 }}>
+          <Input
+            value={editModal.name}
+            onChange={(e) => setEditModal((s) => ({ ...s, name: e.target.value }))}
+            placeholder="Mijoz ismi"
+          />
+          <Input
+            value={editModal.phone}
+            onChange={(e) => setEditModal((s) => ({ ...s, phone: e.target.value }))}
+            placeholder="Telefon raqam"
+          />
+        </div>
       </Modal>
     </div>
   );
