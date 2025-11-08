@@ -28,6 +28,16 @@ export const customerApi = apiSlice.injectEndpoints({
       providesTags: ["Customers"],
     }),
 
+    // ✏️ Mijoz ma'lumotlarini yangilash
+    updateCustomer: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `api/customers/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Customers"],
+    }),
+
     // 📌 Yangi sotuv qo‘shish
     createCustomerSale: builder.mutation({
       query: (data) => ({
@@ -63,6 +73,7 @@ export const {
   useGetCustomerDebtorsQuery,
   useCreateCustomerSaleMutation,
   usePayCustomerDebtMutation,
+  useUpdateCustomerMutation,
   useGetAllCustomersQuery,
   useAddCustomerDebtMutation,
 } = customerApi;

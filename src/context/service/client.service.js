@@ -27,7 +27,9 @@ export const clientApi = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: ["Clients"],
+      // invalidate both Clients and Customers so screens built from either
+      // tag (e.g. customer sales list) will refresh after changes
+      invalidatesTags: ["Clients", "Customers"],
     }),
 
     // 📌 Mijozni yangilash
@@ -37,7 +39,7 @@ export const clientApi = apiSlice.injectEndpoints({
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: ["Clients"],
+      invalidatesTags: ["Clients", "Customers"],
     }),
 
     // 📌 Mijozni o‘chirish
@@ -46,7 +48,7 @@ export const clientApi = apiSlice.injectEndpoints({
         url: `api/clients/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Clients"],
+      invalidatesTags: ["Clients", "Customers"],
     }),
 
     // 📌 Mijoz statistikasi (partiyalar, jami summa, qarz)

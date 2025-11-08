@@ -12,13 +12,17 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useGetCustomerSalesQuery } from "../context/service/customer.service";
+import { useGetClientsQuery } from "../context/service/client.service";
+import { useDispatch } from "react-redux";
+import { apiSlice } from "../context/service/api.service";
 import { usePayCustomerDebtMutation } from "../context/service/debtor.service";
-import { useUpdateClientMutation } from "../context/service/client.service";
 
 const { Text } = Typography;
 
 export default function Mijozlar() {
-  const { data: salesResp, isLoading } = useGetCustomerSalesQuery();
+  const { data: salesResp, isLoading, refetch: refetchSales } = useGetCustomerSalesQuery();
+  const { data: clientsResp, refetch: refetchClients } = useGetClientsQuery();
+  const dispatch = useDispatch();
   const [payModal, setPayModal] = useState({
     open: false,
     customer: null,
@@ -35,10 +39,53 @@ export default function Mijozlar() {
     name: "",
     phone: "",
   });
-  const [updateClient, { isLoading: updating }] = useUpdateClientMutation();
+  
   const [payCustomerDebt, { isLoading: paying }] = usePayCustomerDebtMutation();
+  // local edits persisted to localStorage (so they survive refresh)
+  const [savingLocal, setSavingLocal] = useState(false);
+  const [localClientsMap, setLocalClientsMap] = useState(() => {
+    try {
+      const raw = localStorage.getItem("localClients") || "{}";
+      const obj = JSON.parse(raw || "{}");
+      return new Map(Object.entries(obj));
+    } catch (e) {
+      return new Map();
+    }
+  });
+
+  const saveLocalClient = (key, data) => {
+    try {
+      const raw = localStorage.getItem("localClients") || "{}";
+      const obj = JSON.parse(raw || "{}");
+      // store overlay under both canonical id and phone (if available)
+      const idKey = data && data._id ? String(data._id) : null;
+      const phoneKey = data && data.phone ? String(data.phone) : null;
+      if (idKey) obj[idKey] = { ...(obj[idKey] || {}), ...data };
+      if (phoneKey) obj[phoneKey] = { ...(obj[phoneKey] || {}), ...data };
+      // fallback to the provided key if neither id nor phone exist
+      if (!idKey && !phoneKey) obj[String(key)] = { ...(obj[String(key)] || {}), ...data };
+      localStorage.setItem("localClients", JSON.stringify(obj));
+      setLocalClientsMap(new Map(Object.entries(obj)));
+    } catch (e) {
+      console.error("Failed to save local client", e);
+    }
+  };
+  const clientsMap = useMemo(() => {
+    const m = new Map();
+    if (!clientsResp) return m;
+    const arr = Array.isArray(clientsResp) ? clientsResp : clientsResp.clients || [];
+    for (const cl of arr) {
+      if (!cl) continue;
+      if (cl._id) m.set(cl._id, cl);
+      if (cl.id) m.set(cl.id, cl);
+      if (cl.phone) m.set(cl.phone, cl);
+    }
+    return m;
+  }, [clientsResp]);
   const [q, setQ] = useState("");
   const [customers, setCustomers] = useState([]);
+  // prevent immediate overwrite from background refetch for a short time after manual edit
+  const [freezeRefreshUntil, setFreezeRefreshUntil] = useState(0);
 
   // 🔹 Sotuvlarni olish
   const sales = useMemo(() => {
@@ -52,14 +99,21 @@ export default function Mijozlar() {
   const filteredCustomers = useMemo(() => {
     const map = new Map();
     for (const s of sales) {
-      const c = s.customer_id || {};
+      // customer_id may be an object (embedded snapshot) or a string (id ref)
+      const cRaw = s.customer_id;
+      const c = typeof cRaw === "string" ? { _id: cRaw } : cRaw || {};
       const key = c?._id || c?.phone || "unknown";
       if (!map.has(key)) {
+        // prefer client info from clientsMap if available (by _id or by phone)
+        const clientInfo = clientsMap.get(c._id) || clientsMap.get(c?.phone) || {};
+        const localOverlay = localClientsMap.get(String(clientInfo._id || (c?._id || key))) || localClientsMap.get(String(clientInfo?.phone)) || {};
+        // determine canonical id if available
+        const canonicalId = clientInfo._id || clientInfo.id || c?._id || key;
         map.set(key, {
-          _id: c?._id || key,
-          name: c?.name || "Nomalum",
-          phone: c?.phone || "-",
-          address: c?.address || "-",
+          _id: canonicalId,
+          name: localOverlay.name || clientInfo.name || c?.name || "Nomalum",
+          phone: localOverlay.phone || clientInfo.phone || c?.phone || "-",
+          address: localOverlay.address || clientInfo.address || c?.address || "-",
           totalPurchased: 0,
           totalPaid: 0,
           totalDebt: 0,
@@ -81,10 +135,12 @@ export default function Mijozlar() {
         x.phone.toLowerCase().includes(qq) ||
         x.address.toLowerCase().includes(qq)
     );
-  }, [sales, q]);
+  }, [sales, q, clientsMap, localClientsMap]);
 
   // 🔹 optimistik yangilash uchun state
   useEffect(() => {
+    // if we recently edited a client, avoid overwriting local optimistic state until freeze expires
+    if (Date.now() < freezeRefreshUntil) return;
     setCustomers(filteredCustomers);
   }, [filteredCustomers]);
 
@@ -389,14 +445,48 @@ export default function Mijozlar() {
     );
 
     setEditModal({ open: false, customer: null, name: "", phone: "" });
+    // resolve real client id: try entry._id, then lookup by phone in clientsMap
+    const resolveRealId = (entry) => {
+      if (!entry) return null;
+      // If entry._id exists, try to map it to a canonical client record
+      if (entry._id) {
+        const found = clientsMap.get(entry._id) || clientsMap.get(entry.phone) || null;
+        if (found && (found._id || found.id)) return found._id || found.id;
+        // if entry._id itself looks like a DB id, keep it as last resort
+        return entry._id;
+      }
+      // fallback: try find in clientsMap by phone
+      const byPhone = clientsMap.get(entry.phone) || null;
+      return byPhone?._id || byPhone?.id || null;
+    };
 
-    try {
-      await updateClient({ id: customer._id, name: name.trim(), phone: phone.trim() }).unwrap();
-      message.success("Mijoz ma'lumotlari saqlandi");
-    } catch (err) {
-      message.error(err?.data?.message || "Mijozni yangilashda xatolik");
+    const realId = resolveRealId(customer) || customer._id || customer.phone;
+    if (!realId) {
+      message.error("Mijozning haqiqiy ID sini topib bo'lmadi");
       setCustomers(filteredCustomers);
+      return;
     }
+
+    // Save locally only: persist the edited client to localStorage and update UI
+    try {
+      setSavingLocal(true);
+      const key = String(realId || phone || Date.now());
+      const data = { _id: realId, name: name.trim(), phone: phone.trim(), address: customer.address || "" };
+      saveLocalClient(key, data);
+      // update customers shown in UI
+      setCustomers((prev) => prev.map((c) => (String(c._id) === String(realId) || String(c.phone) === String(phone) ? { ...c, name: data.name, phone: data.phone, address: data.address } : c)));
+      setFreezeRefreshUntil(Date.now() + 5000);
+        // trigger refetch for any Customers/Clients queries so other screens refresh
+        try {
+          dispatch(apiSlice.util.invalidateTags(["Customers", "Clients"]));
+        } catch (e) {
+          console.warn("Failed to invalidate RTK Query tags", e);
+        }
+      message.success("Mijoz localga saqlandi");
+    } finally {
+      setSavingLocal(false);
+    }
+    return;
   };
 
   return (
@@ -483,7 +573,7 @@ export default function Mijozlar() {
         title={`✏️ Mijozni tahrirlash — ${editModal.customer?.name || ""}`}
         onCancel={() => setEditModal({ open: false, customer: null, name: "", phone: "" })}
         onOk={handleEditSave}
-        confirmLoading={updating}
+  confirmLoading={savingLocal}
         okText="Saqlash"
         cancelText="Bekor qilish"
       >

@@ -23,7 +23,7 @@ import InvoicePrint from "../components/Faktura/InvoicePrint";
 const { Option } = Select;
 
 export default function Sale() {
-  const { data: productsData = [], isLoading } = useGetAllStoreItemsQuery();
+  const { data: productsData = [], isLoading, refetch: refetchStore } = useGetAllStoreItemsQuery();
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Barchasi");
@@ -89,10 +89,9 @@ export default function Sale() {
       return;
     }
 
-    const existsInCart = cart.find((item) => item._id === product._id);
-    const totalRequested = existsInCart
-      ? existsInCart.count + quantity
-      : quantity;
+    const prodId = product._id || product.id || product.product_id;
+    const existsInCart = cart.find((item) => (item._id || item.id || item.product_id) === prodId);
+    const totalRequested = existsInCart ? existsInCart.count + quantity : quantity;
 
     if (totalRequested > product.quantity) {
       message.error(
@@ -101,28 +100,20 @@ export default function Sale() {
       return;
     }
 
-    if (existsInCart) {
-      setCart(
-        cart.map((item) =>
-          item._id === product._id
-            ? {
-                ...item,
-                count: totalRequested,
-                sell_price: customPrice || item.sell_price,
-              }
+    // Use functional updater to avoid stale closures
+    setCart((prev) => {
+      if (existsInCart) {
+        return prev.map((item) =>
+          (item._id || item.id || item.product_id) === prodId
+            ? { ...item, count: totalRequested, sell_price: customPrice || item.sell_price }
             : item
-        )
-      );
-    } else {
-      setCart([
-        ...cart,
-        {
-          ...product,
-          count: quantity,
-          sell_price: customPrice || product.sell_price,
-        },
-      ]);
-    }
+        );
+      }
+      return [
+        ...prev,
+        { ...product, count: quantity, sell_price: customPrice || product.sell_price },
+      ];
+    });
 
     message.success(
       `${quantity} ${product.unit} ${product.product_name} savatga qo'shildi`
@@ -163,7 +154,7 @@ export default function Sale() {
     0
   );
 
-  const handleSaleSuccess = (newBuyerData, saleResponse) => {
+  const handleSaleSuccess = async (newBuyerData, saleResponse) => {
     setBuyerData(newBuyerData);
 
     const backendSale = saleResponse?.sale || saleResponse;
@@ -202,17 +193,27 @@ export default function Sale() {
         ? String(backendSale._id).slice(-6)
         : String(Date.now()).slice(-6),
     };
+    // Refresh local store items so inventory reflects the sale immediately
+    try {
+      if (typeof refetchStore === "function") {
+        await refetchStore();
+      }
+    } catch (e) {
+      console.warn("Store refetch failed:", e);
+    }
 
     setSaleData(generatedSaleData);
     message.success("✅ Sotuv muvaffaqiyatli amalga oshirildi");
 
+    // Give a short moment for background queries (store, sales) to refresh
+    // before printing. This reduces cases where the invoice shows stale data.
     setTimeout(() => {
       if (printRef.current) {
         handlePrint();
       } else {
         message.error("Faktura ma'lumotlari tayyor emas");
       }
-    }, 500);
+    }, 900);
   };
 
   if (isLoading) {

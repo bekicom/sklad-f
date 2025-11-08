@@ -11,7 +11,7 @@ import {
   Card,
 } from "antd";
 import { useCreateSaleMutation } from "../../context/service/sales.service";
-import { useGetAllCustomersQuery } from "../../context/service/customer.service";
+import { useGetAllCustomersQuery, useGetCustomerSalesQuery } from "../../context/service/customer.service";
 
 const { Option } = Select;
 const { Text, Title } = Typography;
@@ -30,6 +30,68 @@ export default function SaleModal({
 
   const [createSale, { isLoading }] = useCreateSaleMutation();
   const { data: customers = [] } = useGetAllCustomersQuery();
+  // load local overlays saved by the customers editor (so edits persist locally)
+  const localClientsMap = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem("localClients");
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      console.warn("Failed to parse localClients from localStorage", e);
+      return {};
+    }
+  }, []);
+
+  // merge overlays into canonical customers so edited names/phones appear here
+  const mergedCustomers = React.useMemo(() => {
+    if (!Array.isArray(customers)) return [];
+    return customers.map((c) => {
+      const overlay = localClientsMap[c._id] || (c.phone && localClientsMap[c.phone]);
+      return overlay ? { ...c, ...overlay } : c;
+    });
+  }, [customers, localClientsMap]);
+  // all customer sales (used to compute product-specific previous debts)
+  const { data: allSales = [] } = useGetCustomerSalesQuery();
+
+  // compute previous debt for the currently selected customer limited to products in the cart
+  const productSpecificPrevDebt = React.useMemo(() => {
+    try {
+      if (!allSales || !selectedCustomer || selectedCustomer === "new" || !products || products.length === 0) return 0;
+      // build set of product ids in current cart
+      const productIds = new Set(products.map((p) => (p && (p._id ? String(p._id) : String(p.product_id || p.id)))));
+
+      let sum = 0;
+      for (const s of allSales) {
+        // sale's customer id might be nested
+        const sCustomerId = s?.customer_id?._id || s?.customer_id || s?.customer?._id || s?.customer || null;
+        if (!sCustomerId || String(sCustomerId) !== String(selectedCustomer)) continue;
+        const unpaid = Math.max(Number(s.total_amount || 0) - Number(s.paid_amount || 0), 0);
+        if (unpaid <= 0) continue;
+        const lines = Array.isArray(s.products) ? s.products : s.items || [];
+        const totalLines = lines.reduce((acc, line) => acc + ((line && line.total != null) ? Number(line.total) : (Number(line?.price || 0) * Number(line?.quantity || line?.count || 0))), 0);
+        if (totalLines <= 0) continue;
+        // compute matching products total in this sale
+        const matchingTotal = lines.reduce((acc, line) => {
+          const lineId = line?.product_id || line?._id || line?.id || line?.product?._id;
+          if (!line) return acc;
+          if (lineId && productIds.has(String(lineId))) {
+            return acc + ((line.total != null) ? Number(line.total) : (Number(line.price || 0) * Number(line.quantity || line.count || 0)));
+          }
+          // sometimes name was used as fallback — match only if productIds contains the name string
+          if (line?.name && productIds.has(String(line.name))) {
+            return acc + ((line.total != null) ? Number(line.total) : (Number(line.price || 0) * Number(line.quantity || line.count || 0)));
+          }
+          return acc;
+        }, 0);
+        if (matchingTotal <= 0) continue;
+        const allocated = (matchingTotal / totalLines) * unpaid;
+        sum += allocated;
+      }
+      return Math.round(sum);
+    } catch (err) {
+      console.error("productSpecificPrevDebt calc error:", err);
+      return 0;
+    }
+  }, [allSales, selectedCustomer, products]);
 
   // Mobile detection
   useEffect(() => {
@@ -53,13 +115,13 @@ export default function SaleModal({
 
       // Mijoz ma'lumotlari
       const customerData =
-        selectedCustomer === "new"
-          ? {
-              name: values.customer_name,
-              phone: values.customer_phone,
-              address: values.customer_address || "",
-            }
-          : customers.find((c) => c._id === selectedCustomer);
+          selectedCustomer === "new"
+            ? {
+                name: values.customer_name,
+                phone: values.customer_phone,
+                address: values.customer_address || "",
+              }
+            : mergedCustomers.find((c) => c._id === selectedCustomer);
 
       const paidAmount =
         paymentType === "qarz" ? Number(values.paid_amount) || 0 : totalAmount;
@@ -89,9 +151,7 @@ export default function SaleModal({
         }),
       };
 
-      // Console log - debug uchun
-      console.log("🔍 Yuborilayotgan payload:", payload);
-      console.log("👤 Current user:", currentUser);
+  // Remove noisy debug logs in production flow
 
       // API chaqirish
       const res = await createSale(payload).unwrap();
@@ -129,18 +189,31 @@ export default function SaleModal({
   const formattedTotal = totalAmount?.toLocaleString() || "0";
 
   const handleCustomerChange = (value) => {
-    setSelectedCustomer(value);
-    if (value !== "new") {
-      const customer = customers.find((c) => c._id === value);
-      if (customer) {
-        form.setFieldsValue({
-          customer_name: customer.name,
-          customer_phone: customer.phone,
-          customer_address: customer.address,
-        });
+    try {
+      setSelectedCustomer(value);
+      if (value !== "new") {
+        const customer = mergedCustomers.find((c) => c._id === value);
+        if (customer && form && typeof form.setFieldsValue === "function") {
+          form.setFieldsValue({
+            customer_name: customer.name || "",
+            customer_phone: customer.phone || "",
+            customer_address: customer.address || "",
+          });
+        } else {
+          // if not found, clear the form fields (safe fallback)
+          form.resetFields(["customer_name", "customer_phone", "customer_address"]);
+        }
+      } else {
+        form.resetFields(["customer_name", "customer_phone", "customer_address"]);
       }
-    } else {
-      form.resetFields(["customer_name", "customer_phone", "customer_address"]);
+    } catch (err) {
+      console.error("handleCustomerChange error:", err);
+      // safe fallback
+      try {
+        form.resetFields(["customer_name", "customer_phone", "customer_address"]);
+      } catch (e) {}
+      setSelectedCustomer("new");
+      message.error("Mijoz tanlashda xato yuz berdi");
     }
   };
 
@@ -237,7 +310,7 @@ export default function SaleModal({
             style={{ fontSize: isMobile ? 14 : 16 }}
             options={[
               { label: "🆕 Yangi mijoz", value: "new" },
-              ...customers.map((c) => ({
+              ...mergedCustomers.map((c) => ({
                 label: `${c.name} ${c.phone ? `(${c.phone})` : ""}`,
                 value: c._id,
               })),
