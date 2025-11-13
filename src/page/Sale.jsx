@@ -73,7 +73,7 @@ export default function Sale() {
  }, [productsData, search, category]);
 
   const isWeightUnit = (unit) => {
-    return ["kg", "litr", "metr", "l", "m"].includes(unit?.toLowerCase());
+    return ["kg", "blok", "metr", "l", "m"].includes(unit?.toLowerCase());
   };
 
   const isAvailable = (product) => {

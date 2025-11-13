@@ -349,7 +349,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                       options={[
                         { label: "Kg", value: "kg" },
                         { label: "Dona", value: "dona" },
-                        { label: "Litr", value: "litr" },
+                        { label: "Blok", value: "blok" },
                       ]}
                     />
                   </Form.Item>
@@ -613,7 +613,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                               options={[
                                 { label: "Kg", value: "kg" },
                                 { label: "Dona", value: "dona" },
-                                { label: "Litr", value: "litr" },
+                                { label: "Blok", value: "blok" },
                               ]}
                             />
                           </Form.Item>
