@@ -1,6 +1,7 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useMemo, useEffect } from "react";
+import { useGetCustomerSalesQuery } from "../../context/service/customer.service";
 
-const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
+const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
   const products = sale.products || sale.items || [];
   const saleDate = sale.createdAt || sale.date || Date.now();
 
@@ -8,41 +9,116 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
     sale.total_amount || sale.total || sale.finalAmount || 0
   );
   const discount = Number(sale.discount || 0);
-
-  // ✅ To‘langan summa (faqat haqiqiy paid_amount)
-  const paidAmount = Number(sale.paid_amount || 0);
-
-  // ✅ Chegirma bilan yakuniy summa
   const finalAmount = totalAmount - discount;
 
-  // ✅ Yangi qarz
-  const debtAmount = Math.max(finalAmount - paidAmount, 0);
+  const paidAmount = Number(sale.paid_amount || 0); // joriy sotuvda haqiqiy to‘langan
 
-  // ✅ Oldingi qarz
-  const previousDebt = (() => {
-    if (sale.payment && typeof sale.payment.previous_debt !== "undefined") {
-      return Number(sale.payment.previous_debt) || 0;
+  const debtAmount = Math.max(finalAmount - paidAmount, 0); // yangi qarz
+
+  const customerId = sale.customer?._id || sale.customer?.id || sale.customer;
+
+  const { data: allSales = [], refetch } = useGetCustomerSalesQuery(
+    customerId,
+    {
+      skip: !customerId,
+      refetchOnMountOrArgChange: true,
     }
-    const cust = sale.customer || sale.customer_id || {};
-    const custTotalDebt = Number(cust.totalDebt || 0);
-    const remDebt = Number(sale.remaining_debt || 0);
-    return Math.max(custTotalDebt - remDebt, 0);
-  })();
+  );
 
-  // ✅ Jami qarz (yangi + eski)
-  const totalDebt = previousDebt + debtAmount;
+  // Print boshlanishida majburan yangilash
+  useEffect(() => {
+    if (onPrintStart && typeof onPrintStart === "function") {
+      onPrintStart(refetch);
+    }
+  }, [onPrintStart, refetch]);
+
+  const normalizeProductKey = (item) => {
+    if (!item) return null;
+    const id =
+      item.product_id ||
+      item._id ||
+      item.id ||
+      (item.product && (item.product._id || item.product.id));
+    if (id) return String(id);
+    const name =
+      item.name ||
+      item.product_name ||
+      item.product?.name ||
+      item.title ||
+      item.product?.title;
+    if (name) return String(name).trim().toLowerCase();
+    try {
+      return JSON.stringify(item);
+    } catch {
+      return null;
+    }
+  };
+
+  // Oldingi qarzlarni mahsulot bo‘yicha hisoblash
+  const prevDebtByProduct = useMemo(() => {
+    const res = {};
+    if (!Array.isArray(allSales) || !customerId) return res;
+    const currentSaleId = sale._id;
+
+    for (const s of allSales) {
+      if (s._id && String(s._id) === String(currentSaleId)) continue;
+      const sCustId =
+        s.customer_id?._id || s.customer_id || s.customer?._id || s.customer;
+      if (String(sCustId) !== String(customerId)) continue;
+
+      const unpaid = Math.max(
+        Number(s.total_amount || s.total || 0) - Number(s.paid_amount || 0),
+        0
+      );
+      if (unpaid <= 0) continue;
+
+      const lines = Array.isArray(s.products) ? s.products : s.items || [];
+      const totalLines = lines.reduce((sum, line) => {
+        const lineTotal =
+          line.total ??
+          Number(line.price || 0) * Number(line.quantity || line.count || 0);
+        return sum + lineTotal;
+      }, 0);
+      if (totalLines <= 0) continue;
+
+      for (const line of lines) {
+        const lineTotal =
+          line.total ??
+          Number(line.price || 0) * Number(line.quantity || line.count || 0);
+        if (lineTotal <= 0) continue;
+        const alloc = (lineTotal / totalLines) * unpaid;
+        const key = normalizeProductKey(line);
+        if (key) res[key] = (res[key] || 0) + Math.round(alloc);
+      }
+    }
+
+    return res;
+  }, [allSales, customerId, sale._id]);
+
+  const totalPrevFromMap = Object.values(prevDebtByProduct).reduce(
+    (a, b) => a + (Number(b) || 0),
+    0
+  );
+
+  const previousDebtEffective = (() => {
+    if (sale.payment && typeof sale.payment.previous_debt !== "undefined")
+      return Number(sale.payment.previous_debt) || 0;
+    if (totalPrevFromMap > 0) return Math.round(totalPrevFromMap);
+    const cust = sale.customer || sale.customer_id || {};
+    const custTotalDebt = Number(cust.totalDebt || cust.total_debt || 0) || 0;
+    const rem = Number(sale.remaining_debt || sale.remainingDebt || 0) || 0;
+    return Math.max(custTotalDebt - rem, 0);
+  })();
 
   const checkNo =
     sale.checkNumber || sale.check_number || sale._id
       ? String(sale._id).slice(-6)
       : String(Date.now()).slice(-6);
 
-  // AGENT MA'LUMOTLARI
   const agentData = sale.agent_id || sale.agent_info;
   const isAgentSale = !!(agentData || sale.sale_type === "agent");
   const agentName = agentData?.name || sale.agent_name || "Noma'lum Agent";
   const agentPhone = agentData?.phone || sale.agent_phone || "";
-  const agentLocation = agentData?.location || "";
 
   const formatDate = (d) =>
     new Date(d).toLocaleString("uz-UZ", {
@@ -55,28 +131,21 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
 
   const fmt = (n) => new Intl.NumberFormat("uz-UZ").format(Number(n) || 0);
 
-  const getPaymentMethodLabel = (method, debt) => {
-    if (debt > 0) return "Qarz";
-    const methodStr = String(method).toLowerCase();
-    switch (methodStr) {
-      case "cash":
-      case "naqd":
-        return "Naqd";
-      case "card":
-      case "karta":
-        return "Karta";
-      case "qarz":
-      case "debt":
-        return "Qarz";
-      default:
-        return "Naqd";
-    }
+  const getPrevDebtForItem = (item) => {
+    const key = normalizeProductKey(item);
+    return key && prevDebtByProduct[key]
+      ? Math.round(prevDebtByProduct[key])
+      : 0;
   };
 
-  const paymentMethod = sale.payment_method || sale.paymentMethod || "cash";
+  const getPaymentMethodLabel = (method, debt) => {
+    if (debt > 0) return "Qarz";
+    const m = String(method).toLowerCase();
+    return m === "card" || m === "karta" ? "Karta" : "Naqd";
+  };
+
   const paymentLabel = getPaymentMethodLabel(paymentMethod, debtAmount);
 
-  // Excel format styles
   const tableStyle = {
     width: "100%",
     borderCollapse: "collapse",
@@ -84,24 +153,18 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
     fontSize: "12px",
     border: "2px solid #000",
   };
-
   const cellStyle = {
     border: "1px solid #000",
     padding: "8px",
     textAlign: "left",
   };
-
   const headerStyle = {
     ...cellStyle,
     backgroundColor: "#f0f0f0",
     fontWeight: "bold",
     textAlign: "center",
   };
-
-  const numberStyle = {
-    ...cellStyle,
-    textAlign: "right",
-  };
+  const numberStyle = { ...cellStyle, textAlign: "right" };
 
   return (
     <div
@@ -117,7 +180,6 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
         boxSizing: "border-box",
       }}
     >
-      {/* Header */}
       <table style={tableStyle}>
         <tbody>
           <tr>
@@ -149,7 +211,6 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
               <strong>Tel:</strong> +998 94 732 44 44
             </td>
           </tr>
-
           {isAgentSale && (
             <tr style={{ backgroundColor: "#e8f4f8" }}>
               <td
@@ -160,9 +221,9 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
               <td style={cellStyle}>
                 <strong>Tel:</strong> {agentPhone || "—"}
               </td>
+              <td style={cellStyle} colSpan="2"></td>
             </tr>
           )}
-
           {sale.customer && (
             <tr>
               <td style={cellStyle}>
@@ -184,15 +245,15 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
 
       <br />
 
-      {/* Products */}
       <table style={tableStyle}>
         <thead>
           <tr>
             <th style={{ ...headerStyle, width: "5%" }}>№</th>
-            <th style={{ ...headerStyle, width: "45%" }}>Mahsulot nomi</th>
-            <th style={{ ...headerStyle, width: "15%" }}>Miqdor</th>
-            <th style={{ ...headerStyle, width: "15%" }}>Narx</th>
-            <th style={{ ...headerStyle, width: "20%" }}>Jami</th>
+            <th style={{ ...headerStyle, width: "30%" }}>Mahsulot nomi</th>
+            <th style={{ ...headerStyle, width: "10%" }}>Miqdor</th>
+            <th style={{ ...headerStyle, width: "10%" }}>Narx</th>
+            <th style={{ ...headerStyle, width: "10%" }}>Jami</th>
+            <th style={{ ...headerStyle, width: "10%" }}>Oldingi qarz</th>
           </tr>
         </thead>
         <tbody>
@@ -206,19 +267,7 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
             return (
               <tr key={idx}>
                 <td style={numberStyle}>{idx + 1}</td>
-                <td style={cellStyle}>
-                  {item.name}
-                  {item.model && (
-                    <div style={{ fontSize: "10px", color: "#666" }}>
-                      Model: {item.model}
-                    </div>
-                  )}
-                  {item.partiya_number && (
-                    <div style={{ fontSize: "10px", color: "#666" }}>
-                      Partiya: #{item.partiya_number}
-                    </div>
-                  )}
-                </td>
+                <td style={cellStyle}>{item.name}</td>
                 <td style={numberStyle}>
                   {qty % 1 === 0 ? fmt(qty) : qty.toFixed(1)}
                   {unit}
@@ -229,6 +278,9 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
                 <td style={{ ...numberStyle, fontWeight: "bold" }}>
                   {fmt(itemTotal)} {currency}
                 </td>
+                <td style={numberStyle}>
+                  {fmt(getPrevDebtForItem(item))} so'm
+                </td>
               </tr>
             );
           })}
@@ -237,7 +289,6 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
 
       <br />
 
-      {/* Summary */}
       <table style={{ ...tableStyle, width: "50%", marginLeft: "auto" }}>
         <tbody>
           <tr>
@@ -274,7 +325,6 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
               {fmt(paidAmount)} so'm
             </td>
           </tr>
-
           {debtAmount > 0 && (
             <tr style={{ backgroundColor: "#ffebee" }}>
               <td style={{ ...cellStyle, fontWeight: "bold", color: "red" }}>
@@ -292,8 +342,7 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
               </td>
             </tr>
           )}
-
-          {previousDebt > 0 && (
+          {previousDebtEffective > 0 && (
             <tr>
               <td
                 style={{ ...cellStyle, fontWeight: "bold", color: "#a8071a" }}
@@ -306,16 +355,14 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
                   fontWeight: "bold",
                   color: "#a8071a",
                   backgroundColor: "#fff1f0",
-                  border: "1px solid #ffa39e",
                   fontSize: "13px",
                 }}
               >
-                {fmt(previousDebt)} so'm
+                {fmt(previousDebtEffective)} so'm
               </td>
             </tr>
           )}
-
-          {(debtAmount > 0 || previousDebt > 0) && (
+          {(debtAmount > 0 || previousDebtEffective > 0) && (
             <tr>
               <td
                 style={{
@@ -337,11 +384,10 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
                   borderTop: "2px solid #ff4d4f",
                 }}
               >
-                {fmt(totalDebt)} so'm
+                {fmt(previousDebtEffective + debtAmount)} so'm
               </td>
             </tr>
           )}
-
           <tr>
             <td style={cellStyle}>
               <strong>To'lov usuli:</strong>
@@ -352,18 +398,13 @@ const InvoicePrint = forwardRef(({ sale = {} }, ref) => {
           </tr>
         </tbody>
       </table>
-
       <br />
-
-      <style>
-        {`
-          @media print {
-            @page { size: A4; margin: 0.5in; }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          }
-        `}
-      </style>
+      <style>{`
+        @media print {
+          @page { size: A4; margin: 0.5in; }
+          body, * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `}</style>
     </div>
   );
 });
