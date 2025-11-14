@@ -458,6 +458,7 @@ export default function Mijozlar() {
                     message.success("Mijoz muvaffaqiyatli o'chirildi");
                     try { refetchClients(); } catch(e){}
                     try { refetchSales(); } catch(e){}
+                    try { dispatch(apiSlice.util.invalidateTags(["Clients","Customers","User","Product","Order"])); } catch(e){}
                     // ensure UI removes any local references immediately
                     setCustomers((prev) => prev.filter((c) => String(c._id) !== String(record._id) && String(c.phone) !== String(record.phone)));
                   } catch (err) {

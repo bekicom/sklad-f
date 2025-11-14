@@ -1,9 +1,9 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 const baseQuery = fetchBaseQuery({
-  // baseUrl: "http://localhost:5000",
+  baseUrl: "http://localhost:5000/",
 // 
-  baseUrl: "https://sklad.richman.uz",
+  // baseUrl: "https://sklad.richman.uz",
 
   prepareHeaders: (headers) => {
     const token = localStorage.getItem("token");
@@ -26,7 +26,15 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["User", "Product", "Order"], // keraklilarni qo‘shib ketamiz
+  // add all tags that endpoints use so invalidateTags() works correctly
+  tagTypes: [
+    "User",
+    "Product",
+    "Order",
+    "Clients",
+    "Customers",
+    "ClientPayments",
+  ],
   endpoints: () => ({}),
 });
 //
