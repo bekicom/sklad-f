@@ -10,13 +10,16 @@ import {
   Spin,
   Card,
   Statistic,
+  Popconfirm,
 } from "antd";
+import { DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
   useGetClientsQuery,
   usePayDebtMutation,
   useGetClientStatsQuery,
   useGetClientPaymentsQuery,
+  useDeleteClientMutation,
   useGetClientImportsHistoryQuery,
   useAddDebtMutation,
 } from "../context/service/client.service";
@@ -29,6 +32,7 @@ export default function Clients() {
     isLoading,
     refetch: refetchClients,
   } = useGetClientsQuery();
+  const [deleteClient] = useDeleteClientMutation();
   const [payDebt, { isLoading: paying }] = usePayDebtMutation();
   const [addDebt] = useAddDebtMutation();
 
@@ -227,6 +231,23 @@ export default function Clients() {
           <Button type="primary" onClick={() => openAddModal(record)}>
             Astatka
           </Button>
+          <Popconfirm
+            title={`Mijoz "${record.name}" ni butunlay o'chirishni xohlaysizmi?`}
+            onConfirm={async () => {
+              try {
+                await deleteClient(record._id).unwrap();
+                message.success("Mijoz muvaffaqiyatli o'chirildi");
+                refetchClients();
+              } catch (err) {
+                console.error('Mijoz o\'chirish xatosi:', err);
+                message.error(err?.data?.message || "O'chirishda xatolik yuz berdi");
+              }
+            }}
+            okText="Ha"
+            cancelText="Yo'q"
+          >
+            <Button danger icon={<DeleteOutlined />} />
+          </Popconfirm>
         </Space>
       ),
     },

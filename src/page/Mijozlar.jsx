@@ -9,10 +9,12 @@ import {
   Modal,
   InputNumber,
   message,
+  Popconfirm,
 } from "antd";
 import dayjs from "dayjs";
+import { DeleteOutlined } from "@ant-design/icons";
 import { useGetCustomerSalesQuery } from "../context/service/customer.service";
-import { useGetClientsQuery } from "../context/service/client.service";
+import { useGetClientsQuery, useDeleteClientMutation } from "../context/service/client.service";
 import { useDispatch } from "react-redux";
 import { apiSlice } from "../context/service/api.service";
 import { usePayCustomerDebtMutation } from "../context/service/debtor.service";
@@ -41,6 +43,7 @@ export default function Mijozlar() {
   });
   
   const [payCustomerDebt, { isLoading: paying }] = usePayCustomerDebtMutation();
+  const [deleteClient] = useDeleteClientMutation();
   // local edits persisted to localStorage (so they survive refresh)
   const [savingLocal, setSavingLocal] = useState(false);
   const [localClientsMap, setLocalClientsMap] = useState(() => {
@@ -394,36 +397,82 @@ export default function Mijozlar() {
       key: "actions",
       width: 200,
       render: (_, record) => (
-        <Space>
-          {record.totalDebt > 0 && (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() =>
-                setPayModal({ open: true, customer: record, amount: null })
-              }
-            >
-              To'lov
-            </Button>
+        <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            {record.totalDebt > 0 && (
+              <Button
+                type="primary"
+                size="small"
+                onClick={() =>
+                  setPayModal({ open: true, customer: record, amount: null })
+                }
+              >
+                To'lov
+              </Button>
+            )}
+          </div>
+
+          {record.sales.some((s) => Array.isArray(s.payment_history) && s.payment_history.length > 0) && (
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+              <Button
+                size="small"
+                onClick={() =>
+                  setHistoryModal({
+                    open: true,
+                    customer: record,
+                    history: record.sales.flatMap((s) => s.payment_history || []),
+                  })
+                }
+              >
+                Tarix
+              </Button>
+
+              <Popconfirm
+                title={`Mijoz "${record.name}" ni butunlay o'chirishni xohlaysizmi?`}
+                onConfirm={async () => {
+                  try {
+                    if (!record._id) throw new Error("Mijoz ID topilmadi");
+                    await deleteClient(record._id).unwrap();
+
+                    // Remove any local overlay entries that reference this client
+                    try {
+                      const raw = localStorage.getItem("localClients") || "{}";
+                      const obj = JSON.parse(raw || "{}");
+                      let changed = false;
+                      for (const k of Object.keys(obj)) {
+                        const v = obj[k];
+                        if (!v) continue;
+                        if (String(v._id) === String(record._id) || String(v.phone) === String(record.phone)) {
+                          delete obj[k];
+                          changed = true;
+                        }
+                      }
+                      if (changed) {
+                        localStorage.setItem("localClients", JSON.stringify(obj));
+                        setLocalClientsMap(new Map(Object.entries(obj)));
+                      }
+                    } catch (e) {
+                      console.warn("Failed to cleanup localClients", e);
+                    }
+
+                    message.success("Mijoz muvaffaqiyatli o'chirildi");
+                    try { refetchClients(); } catch(e){}
+                    try { refetchSales(); } catch(e){}
+                    // ensure UI removes any local references immediately
+                    setCustomers((prev) => prev.filter((c) => String(c._id) !== String(record._id) && String(c.phone) !== String(record.phone)));
+                  } catch (err) {
+                    console.error("Mijoz o'chirish xatosi:", err);
+                    message.error(err?.data?.message || "O'chirishda xatolik yuz berdi");
+                  }
+                }}
+                okText="Ha"
+                cancelText="Yo'q"
+              >
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            </div>
           )}
-          {record.sales.some(
-            (s) =>
-              Array.isArray(s.payment_history) && s.payment_history.length > 0
-          ) && (
-            <Button
-              size="small"
-              onClick={() =>
-                setHistoryModal({
-                  open: true,
-                  customer: record,
-                  history: record.sales.flatMap((s) => s.payment_history || []),
-                })
-              }
-            >
-              Tarix
-            </Button>
-          )}
-        </Space>
+        </div>
       ),
     },
   ];
