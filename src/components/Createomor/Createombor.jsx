@@ -21,6 +21,7 @@ import {
   useCreateClientMutation,
 } from "../../context/service/client.service";
 import { useUpdateStoreItemMutation } from "../../context/service/store.service";
+import { getUnitFactor, getBaseUnit, normalizeUnit } from "../../utils/units";
 
 const { Text } = Typography;
 
@@ -100,10 +101,16 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
       const up = Number(p.unit_price) || 0;
       const tp = q && up ? Number((q * up).toFixed(2)) : 0;
 
+      // Convert to UZS if needed
       const priceInUZS = p.currency === "USD" ? tp * rate : tp;
       totalUZS += priceInUZS;
 
-      return { ...p, total_price: tp };
+      // compute base quantity (e.g., 1 blok = N dona)
+      const factor = getUnitFactor(p.unit);
+      const baseQuantity = Number((q * factor).toFixed(2));
+      const baseUnit = getBaseUnit(p.unit);
+
+      return { ...p, total_price: tp, base_quantity: baseQuantity, base_unit: baseUnit, unit: normalizeUnit(p.unit) };
     });
 
     setTotalSum(Number(totalUZS.toFixed(2)));
@@ -187,16 +194,23 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
         usd_rate: Number(values.usd_rate),
         paid_amount: Number(values.paid_amount) || 0,
         partiya_number: Number(values.partiya_number),
-        products: values.products.map((p) => ({
-          product_name: p.product_name || p.title,
-          model: p.model || "",
-          unit: p.unit,
-          quantity: Number(p.quantity),
-          unit_price: Number(p.unit_price),
-          total_price: Number(p.total_price),
-          sell_price: Number(p.sell_price),
-          currency: p.currency,
-        })),
+        products: values.products.map((p) => {
+          const unit = normalizeUnit(p.unit);
+          const factor = getUnitFactor(unit);
+          return {
+            product_name: p.product_name || p.title,
+            model: p.model || "",
+            unit: unit,
+            quantity: Number(p.quantity),
+            unit_price: Number(p.unit_price),
+            total_price: Number(p.total_price),
+            sell_price: Number(p.sell_price),
+            currency: p.currency,
+            // conversion info for backend
+            base_unit: getBaseUnit(unit),
+            base_quantity: Number((Number(p.quantity || 0) * factor).toFixed(2)),
+          };
+        }),
       };
 
       await createImport(data).unwrap();

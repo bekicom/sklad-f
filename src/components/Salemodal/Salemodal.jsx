@@ -11,6 +11,7 @@ import {
   Card,
 } from "antd";
 import { useCreateSaleMutation } from "../../context/service/sales.service";
+import { convertToBase, normalizeUnit, getBaseUnit } from "../../utils/units";
 import { useGetAllCustomersQuery, useGetCustomerSalesQuery } from "../../context/service/customer.service";
 
 const { Option } = Select;
@@ -133,15 +134,23 @@ export default function SaleModal({
           phone: customerData?.phone,
           address: customerData?.address || "",
         },
-        products: products.map((p) => ({
-          product_id: p._id,
-          quantity: p.count,
-          price: p.sell_price,
-        })),
+        products: products.map((p) => {
+          // ensure unit normalization and include base quantity info when available
+          const unit = normalizeUnit(p.unit);
+          const base_quantity = p.base_quantity !== undefined ? p.base_quantity : convertToBase(p.count, unit);
+          return {
+            product_id: p._id,
+            quantity: Number(p.count),
+            price: p.sell_price,
+            unit: unit,
+            base_unit: getBaseUnit(unit),
+            base_quantity: Number(base_quantity),
+          };
+        }),
         paid_amount: paidAmount,
         payment_method: paymentType,
 
-        // AGENT MA'LUMOTLARINI QO'SHISH
+        // AGENT MA'LUMOTLARINI QO'SHAMIZ
         ...(isAgent && {
           agent_info: {
             name: currentUser.name || "Agent",
