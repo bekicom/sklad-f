@@ -200,7 +200,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           return {
             product_name: p.product_name || p.title,
             model: p.model || "",
-            unit: unit,
+            unit: unit.toLowerCase(),
             quantity: Number(p.quantity),
             unit_price: Number(p.unit_price),
             total_price: Number(p.total_price),
