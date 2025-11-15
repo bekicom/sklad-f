@@ -32,7 +32,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", phone: "" });
 
-  // Edit mode detection
   const isEditMode = !!editingItem;
 
   const [createImport, { isLoading }] = useCreateImportMutation();
@@ -48,11 +47,9 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
     refetch: refetchClients,
   } = useGetClientsQuery();
 
-  // Edit mode da formani to'ldirish
   useEffect(() => {
     if (isEditMode && editingItem) {
       form.setFieldsValue({
-        // Bitta mahsulot uchun edit
         product_name: editingItem.product_name,
         model: editingItem.model || "",
         unit: editingItem.unit,
@@ -67,7 +64,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
         note: editingItem.note || "",
       });
     } else {
-      // Yangi qo'shish mode
       form.setFieldsValue({
         partiya_number:
           lastPartiyaData?.lastPartiyaNumber !== undefined
@@ -79,7 +75,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
 
   const handleFormChange = (_, allValues) => {
     if (isEditMode) {
-      // Edit mode da faqat narxni hisoblash
       const quantity = Number(allValues.quantity) || 0;
       const purchasePrice = Number(allValues.purchase_price) || 0;
       const totalPrice = quantity * purchasePrice;
@@ -90,7 +85,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
       return;
     }
 
-    // Import mode logic (eski kod)
     const rate = Number(allValues.usd_rate) || 0;
     const paid = Number(allValues.paid_amount) || 0;
     const products = allValues.products || [];
@@ -101,11 +95,9 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
       const up = Number(p.unit_price) || 0;
       const tp = q && up ? Number((q * up).toFixed(2)) : 0;
 
-      // Convert to UZS if needed
       const priceInUZS = p.currency === "USD" ? tp * rate : tp;
       totalUZS += priceInUZS;
 
-      // compute base quantity (e.g., 1 blok = N dona)
       const factor = getUnitFactor(p.unit);
       const baseQuantity = Number((q * factor).toFixed(2));
       const baseUnit = getBaseUnit(p.unit);
@@ -148,7 +140,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
   const onFinish = async (values) => {
     try {
       if (isEditMode) {
-        // Edit mode - bitta mahsulotni yangilash
         const updateData = {
           product_name: values.product_name,
           model: values.model || "",
@@ -173,7 +164,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
         return;
       }
 
-      // Import mode (eski kod)
       if (!values.client_id) {
         return message.error("Iltimos, mijozni tanlang");
       }
@@ -206,13 +196,12 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           return {
             product_name: p.product_name || p.title,
             model: p.model || "",
-            unit: normalizeUnit(p.unit).trim().toLowerCase(),
+            unit: unit.toLowerCase(),
             quantity: Number(p.quantity),
             unit_price: Number(p.unit_price),
             total_price: Number(p.total_price),
             sell_price: Number(p.sell_price),
             currency: p.currency,
-            // conversion info for backend
             base_unit: getBaseUnit(unit),
             base_quantity: Number(
               (Number(p.quantity || 0) * factor).toFixed(2)
@@ -236,14 +225,20 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
     onClose();
   };
 
-  // Formatter / Parser bo'sh joy bilan
   const numberFormatter = (value) =>
     value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "";
   const numberParser = (value) => value.replace(/\s/g, "");
 
+  // 🔹 O'lchov birliklari ro'yxati (karobka qo'shildi)
+  const unitOptions = [
+    { label: "Kg", value: "kg" },
+    { label: "Dona", value: "dona" },
+    { label: "Blok", value: "blok" },
+    { label: "Karobka", value: "karobka" }, // ✅ Qo'shildi
+  ];
+
   return (
     <>
-      {/* Yangi mijoz qo'shish modali */}
       <Modal
         title="Yangi mijoz qo'shish"
         open={isClientModalOpen}
@@ -273,7 +268,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
         </Form>
       </Modal>
 
-      {/* Asosiy modal */}
       <Modal
         title={
           isEditMode ? "Mahsulotni tahrirlash" : "Omborga mahsulot kirim qilish"
@@ -296,9 +290,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           }}
         >
           {isEditMode ? (
-            // Edit mode - bitta mahsulot shakli
             <>
-              {/* Mijoz tanlash */}
               <Row gutter={16}>
                 <Col span={24}>
                   <Form.Item
@@ -338,7 +330,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                 </Col>
               </Row>
 
-              {/* Mahsulot ma'lumotlari */}
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
@@ -367,13 +358,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                       { required: true, message: "O'lchov birligini tanlang" },
                     ]}
                   >
-                    <Select
-                      options={[
-                        { label: "Kg", value: "kg" },
-                        { label: "Dona", value: "dona" },
-                        { label: "blok", value: "blok" },
-                      ]}
-                    />
+                    <Select options={unitOptions} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -491,9 +476,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               </Form.Item>
             </>
           ) : (
-            // Import mode (eski kod) - mahsulotlar ro'yxati
             <>
-              {/* Mijoz tanlash */}
               <Row gutter={16}>
                 <Col span={24}>
                   <Form.Item
@@ -539,7 +522,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                 </Col>
               </Row>
 
-              {/* Umumiy */}
               <Row gutter={16}>
                 <Col span={8}>
                   <Form.Item
@@ -580,7 +562,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                 </Col>
               </Row>
 
-              {/* Hisob */}
               <Row gutter={16} style={{ marginBottom: 10 }}>
                 <Col span={12}>
                   <Card
@@ -602,7 +583,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                 </Col>
               </Row>
 
-              {/* Mahsulotlar ro'yxati */}
               <Form.List name="products">
                 {(fields, { add, remove }) => (
                   <>
@@ -631,13 +611,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                             name={[name, "unit"]}
                             rules={[{ required: true }]}
                           >
-                            <Select
-                              options={[
-                                { label: "Kg", value: "kg" },
-                                { label: "Dona", value: "dona" },
-                                { label: "Blok", value: "blok" }, // label katta bo‘lishi mumkin, value kichik
-                              ]}
-                            />
+                            <Select options={unitOptions} />
                           </Form.Item>
                         </Col>
                         <Col span={3}>
@@ -741,7 +715,6 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
             </>
           )}
 
-          {/* Tugmalar */}
           <div style={{ textAlign: "right", marginTop: 16 }}>
             <Button onClick={handleCancel} style={{ marginRight: 8 }}>
               Bekor qilish
