@@ -110,7 +110,13 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
       const baseQuantity = Number((q * factor).toFixed(2));
       const baseUnit = getBaseUnit(p.unit);
 
-      return { ...p, total_price: tp, base_quantity: baseQuantity, base_unit: baseUnit, unit: normalizeUnit(p.unit) };
+      return {
+        ...p,
+        total_price: tp,
+        base_quantity: baseQuantity,
+        base_unit: baseUnit,
+        unit: normalizeUnit(p.unit),
+      };
     });
 
     setTotalSum(Number(totalUZS.toFixed(2)));
@@ -200,7 +206,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           return {
             product_name: p.product_name || p.title,
             model: p.model || "",
-            unit: unit.toLowerCase(),
+            unit: normalizeUnit(p.unit).trim().toLowerCase(),
             quantity: Number(p.quantity),
             unit_price: Number(p.unit_price),
             total_price: Number(p.total_price),
@@ -208,7 +214,9 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
             currency: p.currency,
             // conversion info for backend
             base_unit: getBaseUnit(unit),
-            base_quantity: Number((Number(p.quantity || 0) * factor).toFixed(2)),
+            base_quantity: Number(
+              (Number(p.quantity || 0) * factor).toFixed(2)
+            ),
           };
         }),
       };
@@ -363,7 +371,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                       options={[
                         { label: "Kg", value: "kg" },
                         { label: "Dona", value: "dona" },
-                        { label: "Blok", value: "blok" },
+                        { label: "blok", value: "blok" },
                       ]}
                     />
                   </Form.Item>
@@ -627,7 +635,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                               options={[
                                 { label: "Kg", value: "kg" },
                                 { label: "Dona", value: "dona" },
-                                { label: "Blok", value: "blok" },
+                                { label: "Blok", value: "blok" }, // label katta bo‘lishi mumkin, value kichik
                               ]}
                             />
                           </Form.Item>

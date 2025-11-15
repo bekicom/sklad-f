@@ -13,8 +13,11 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { DeleteOutlined } from "@ant-design/icons";
-import { useGetCustomerSalesQuery } from "../context/service/customer.service";
-import { useGetClientsQuery, useDeleteClientMutation } from "../context/service/client.service";
+import {
+  useGetCustomerSalesQuery,
+  useDeleteCustomerMutation, // ✅ YANGI import
+} from "../context/service/customer.service";
+import { useGetClientsQuery } from "../context/service/client.service";
 import { useDispatch } from "react-redux";
 import { apiSlice } from "../context/service/api.service";
 import { usePayCustomerDebtMutation } from "../context/service/debtor.service";
@@ -22,7 +25,11 @@ import { usePayCustomerDebtMutation } from "../context/service/debtor.service";
 const { Text } = Typography;
 
 export default function Mijozlar() {
-  const { data: salesResp, isLoading, refetch: refetchSales } = useGetCustomerSalesQuery();
+  const {
+    data: salesResp,
+    isLoading,
+    refetch: refetchSales,
+  } = useGetCustomerSalesQuery();
   const { data: clientsResp, refetch: refetchClients } = useGetClientsQuery();
   const dispatch = useDispatch();
   const [payModal, setPayModal] = useState({
@@ -41,9 +48,10 @@ export default function Mijozlar() {
     name: "",
     phone: "",
   });
-  
+
   const [payCustomerDebt, { isLoading: paying }] = usePayCustomerDebtMutation();
-  const [deleteClient] = useDeleteClientMutation();
+  const [deleteCustomer] = useDeleteCustomerMutation(); // ✅ deleteClient → deleteCustomer
+
   // local edits persisted to localStorage (so they survive refresh)
   const [savingLocal, setSavingLocal] = useState(false);
   const [localClientsMap, setLocalClientsMap] = useState(() => {
@@ -66,17 +74,21 @@ export default function Mijozlar() {
       if (idKey) obj[idKey] = { ...(obj[idKey] || {}), ...data };
       if (phoneKey) obj[phoneKey] = { ...(obj[phoneKey] || {}), ...data };
       // fallback to the provided key if neither id nor phone exist
-      if (!idKey && !phoneKey) obj[String(key)] = { ...(obj[String(key)] || {}), ...data };
+      if (!idKey && !phoneKey)
+        obj[String(key)] = { ...(obj[String(key)] || {}), ...data };
       localStorage.setItem("localClients", JSON.stringify(obj));
       setLocalClientsMap(new Map(Object.entries(obj)));
     } catch (e) {
       console.error("Failed to save local client", e);
     }
   };
+
   const clientsMap = useMemo(() => {
     const m = new Map();
     if (!clientsResp) return m;
-    const arr = Array.isArray(clientsResp) ? clientsResp : clientsResp.clients || [];
+    const arr = Array.isArray(clientsResp)
+      ? clientsResp
+      : clientsResp.clients || [];
     for (const cl of arr) {
       if (!cl) continue;
       if (cl._id) m.set(cl._id, cl);
@@ -85,6 +97,7 @@ export default function Mijozlar() {
     }
     return m;
   }, [clientsResp]);
+
   const [q, setQ] = useState("");
   const [customers, setCustomers] = useState([]);
   // prevent immediate overwrite from background refetch for a short time after manual edit
@@ -108,15 +121,20 @@ export default function Mijozlar() {
       const key = c?._id || c?.phone || "unknown";
       if (!map.has(key)) {
         // prefer client info from clientsMap if available (by _id or by phone)
-        const clientInfo = clientsMap.get(c._id) || clientsMap.get(c?.phone) || {};
-        const localOverlay = localClientsMap.get(String(clientInfo._id || (c?._id || key))) || localClientsMap.get(String(clientInfo?.phone)) || {};
+        const clientInfo =
+          clientsMap.get(c._id) || clientsMap.get(c?.phone) || {};
+        const localOverlay =
+          localClientsMap.get(String(clientInfo._id || c?._id || key)) ||
+          localClientsMap.get(String(clientInfo?.phone)) ||
+          {};
         // determine canonical id if available
         const canonicalId = clientInfo._id || clientInfo.id || c?._id || key;
         map.set(key, {
           _id: canonicalId,
           name: localOverlay.name || clientInfo.name || c?.name || "Nomalum",
           phone: localOverlay.phone || clientInfo.phone || c?.phone || "-",
-          address: localOverlay.address || clientInfo.address || c?.address || "-",
+          address:
+            localOverlay.address || clientInfo.address || c?.address || "-",
           totalPurchased: 0,
           totalPaid: 0,
           totalDebt: 0,
@@ -145,7 +163,7 @@ export default function Mijozlar() {
     // if we recently edited a client, avoid overwriting local optimistic state until freeze expires
     if (Date.now() < freezeRefreshUntil) return;
     setCustomers(filteredCustomers);
-  }, [filteredCustomers]);
+  }, [filteredCustomers, freezeRefreshUntil]);
 
   // 🔹 Mahsulotlar jadvali
   const ProductsTable = ({ products = [] }) => {
@@ -187,7 +205,7 @@ export default function Mijozlar() {
     );
   };
 
-  // 🔹 To‘lov tarixi jadvali
+  // 🔹 To'lov tarixi jadvali
   const PaymentHistoryTable = ({ history = [] }) => {
     const columns = [
       { title: "№", render: (_, __, index) => index + 1, width: 50 },
@@ -287,7 +305,7 @@ export default function Mijozlar() {
     );
   };
 
-  // 🔹 Qarzni to‘lash
+  // 🔹 Qarzni to'lash
   const handlePay = async () => {
     if (!payModal.amount || payModal.amount <= 0) {
       message.error("To'lov summasini kiriting!");
@@ -412,29 +430,55 @@ export default function Mijozlar() {
             )}
           </div>
 
-          {record.sales.some((s) => Array.isArray(s.payment_history) && s.payment_history.length > 0) && (
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          {record.sales.some(
+            (s) =>
+              Array.isArray(s.payment_history) && s.payment_history.length > 0
+          ) && (
+            <div
+              style={{
+                marginLeft: "auto",
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
               <Button
                 size="small"
                 onClick={() =>
                   setHistoryModal({
                     open: true,
                     customer: record,
-                    history: record.sales.flatMap((s) => s.payment_history || []),
+                    history: record.sales.flatMap(
+                      (s) => s.payment_history || []
+                    ),
                   })
                 }
               >
                 Tarix
               </Button>
 
+              {/* ✅ YANGILANGAN DELETE BUTTON */}
               <Popconfirm
                 title={`Mijoz "${record.name}" ni butunlay o'chirishni xohlaysizmi?`}
+                description="Bu mijozning barcha sotuvlari ham o'chiriladi!" // ✅ Ogohlantirish
                 onConfirm={async () => {
                   try {
-                    if (!record._id) throw new Error("Mijoz ID topilmadi");
-                    await deleteClient(record._id).unwrap();
+                    console.log("=== FRONTEND DELETE CUSTOMER ===");
+                    console.log("O'chiriladigan mijoz:", record);
+                    console.log("Mijoz ID:", record._id);
 
-                    // Remove any local overlay entries that reference this client
+                    if (!record._id) {
+                      message.error("Mijoz ID topilmadi");
+                      return;
+                    }
+
+                    const result = await deleteCustomer(record._id).unwrap(); // ✅ deleteClient → deleteCustomer
+
+                    console.log("O'chirish natijasi:", result);
+
+                    message.success("Mijoz muvaffaqiyatli o'chirildi ✅");
+
+                    // localStorage'dan ham tozalash
                     try {
                       const raw = localStorage.getItem("localClients") || "{}";
                       const obj = JSON.parse(raw || "{}");
@@ -442,32 +486,74 @@ export default function Mijozlar() {
                       for (const k of Object.keys(obj)) {
                         const v = obj[k];
                         if (!v) continue;
-                        if (String(v._id) === String(record._id) || String(v.phone) === String(record.phone)) {
+                        if (
+                          String(v._id) === String(record._id) ||
+                          String(v.phone) === String(record.phone)
+                        ) {
                           delete obj[k];
                           changed = true;
                         }
                       }
                       if (changed) {
-                        localStorage.setItem("localClients", JSON.stringify(obj));
+                        localStorage.setItem(
+                          "localClients",
+                          JSON.stringify(obj)
+                        );
                         setLocalClientsMap(new Map(Object.entries(obj)));
                       }
                     } catch (e) {
-                      console.warn("Failed to cleanup localClients", e);
+                      console.warn("localStorage tozalashda xato", e);
                     }
 
-                    message.success("Mijoz muvaffaqiyatli o'chirildi");
-                    try { refetchClients(); } catch(e){}
-                    try { refetchSales(); } catch(e){}
-                    try { dispatch(apiSlice.util.invalidateTags(["Clients","Customers","User","Product","Order"])); } catch(e){}
-                    // ensure UI removes any local references immediately
-                    setCustomers((prev) => prev.filter((c) => String(c._id) !== String(record._id) && String(c.phone) !== String(record.phone)));
+                    // Ma'lumotlarni yangilash
+                    try {
+                      refetchClients();
+                    } catch (e) {}
+                    try {
+                      refetchSales();
+                    } catch (e) {}
+                    try {
+                      dispatch(
+                        apiSlice.util.invalidateTags([
+                          "Clients",
+                          "Customers",
+                          "User",
+                          "Product",
+                          "Order",
+                        ])
+                      );
+                    } catch (e) {}
+
+                    // UI'dan darhol olib tashlash
+                    setCustomers((prev) =>
+                      prev.filter(
+                        (c) =>
+                          String(c._id) !== String(record._id) &&
+                          String(c.phone) !== String(record.phone)
+                      )
+                    );
                   } catch (err) {
                     console.error("Mijoz o'chirish xatosi:", err);
-                    message.error(err?.data?.message || "O'chirishda xatolik yuz berdi");
+                    console.error("Xato detallari:", err?.data);
+
+                    if (err?.status === 404) {
+                      message.warning(
+                        "Bu mijoz allaqachon o'chirilgan. Ro'yxatni yangilash..."
+                      );
+                      refetchSales();
+                      setCustomers((prev) =>
+                        prev.filter((c) => String(c._id) !== String(record._id))
+                      );
+                    } else {
+                      message.error(
+                        err?.data?.message || "O'chirishda xatolik yuz berdi ❌"
+                      );
+                    }
                   }
                 }}
-                okText="Ha"
-                cancelText="Yo'q"
+                okText="Ha, o'chirish"
+                cancelText="Bekor qilish"
+                okButtonProps={{ danger: true }}
               >
                 <Button size="small" danger icon={<DeleteOutlined />} />
               </Popconfirm>
@@ -490,17 +576,21 @@ export default function Mijozlar() {
     // optimistik yangilash
     setCustomers((prev) =>
       prev.map((c) =>
-        c._id === customer._id ? { ...c, name: name.trim(), phone: phone.trim() } : c
+        c._id === customer._id
+          ? { ...c, name: name.trim(), phone: phone.trim() }
+          : c
       )
     );
 
     setEditModal({ open: false, customer: null, name: "", phone: "" });
+
     // resolve real client id: try entry._id, then lookup by phone in clientsMap
     const resolveRealId = (entry) => {
       if (!entry) return null;
       // If entry._id exists, try to map it to a canonical client record
       if (entry._id) {
-        const found = clientsMap.get(entry._id) || clientsMap.get(entry.phone) || null;
+        const found =
+          clientsMap.get(entry._id) || clientsMap.get(entry.phone) || null;
         if (found && (found._id || found.id)) return found._id || found.id;
         // if entry._id itself looks like a DB id, keep it as last resort
         return entry._id;
@@ -521,17 +611,34 @@ export default function Mijozlar() {
     try {
       setSavingLocal(true);
       const key = String(realId || phone || Date.now());
-      const data = { _id: realId, name: name.trim(), phone: phone.trim(), address: customer.address || "" };
+      const data = {
+        _id: realId,
+        name: name.trim(),
+        phone: phone.trim(),
+        address: customer.address || "",
+      };
       saveLocalClient(key, data);
       // update customers shown in UI
-      setCustomers((prev) => prev.map((c) => (String(c._id) === String(realId) || String(c.phone) === String(phone) ? { ...c, name: data.name, phone: data.phone, address: data.address } : c)));
+      setCustomers((prev) =>
+        prev.map((c) =>
+          String(c._id) === String(realId) || String(c.phone) === String(phone)
+            ? {
+                ...c,
+                name: data.name,
+                phone: data.phone,
+                address: data.address,
+              }
+            : c
+        )
+      );
       setFreezeRefreshUntil(Date.now() + 5000);
-        // trigger refetch for any Customers/Clients queries so other screens refresh
-        try {
-          dispatch(apiSlice.util.invalidateTags(["Customers", "Clients"]));
-        } catch (e) {
-          console.warn("Failed to invalidate RTK Query tags", e);
-        }
+
+      // trigger refetch for any Customers/Clients queries so other screens refresh
+      try {
+        dispatch(apiSlice.util.invalidateTags(["Customers", "Clients"]));
+      } catch (e) {
+        console.warn("Failed to invalidate RTK Query tags", e);
+      }
       message.success("Mijoz localga saqlandi");
     } finally {
       setSavingLocal(false);
@@ -597,7 +704,7 @@ export default function Mijozlar() {
           max={payModal.customer?.totalDebt || 0}
           value={payModal.amount}
           onChange={(val) => setPayModal((p) => ({ ...p, amount: val }))}
-          placeholder="To‘lov summasini kiriting"
+          placeholder="To'lov summasini kiriting"
           formatter={(value) =>
             `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
           }
@@ -621,21 +728,27 @@ export default function Mijozlar() {
       <Modal
         open={editModal.open}
         title={`✏️ Mijozni tahrirlash — ${editModal.customer?.name || ""}`}
-        onCancel={() => setEditModal({ open: false, customer: null, name: "", phone: "" })}
+        onCancel={() =>
+          setEditModal({ open: false, customer: null, name: "", phone: "" })
+        }
         onOk={handleEditSave}
-  confirmLoading={savingLocal}
+        confirmLoading={savingLocal}
         okText="Saqlash"
         cancelText="Bekor qilish"
       >
         <div style={{ display: "grid", gap: 8 }}>
           <Input
             value={editModal.name}
-            onChange={(e) => setEditModal((s) => ({ ...s, name: e.target.value }))}
+            onChange={(e) =>
+              setEditModal((s) => ({ ...s, name: e.target.value }))
+            }
             placeholder="Mijoz ismi"
           />
           <Input
             value={editModal.phone}
-            onChange={(e) => setEditModal((s) => ({ ...s, phone: e.target.value }))}
+            onChange={(e) =>
+              setEditModal((s) => ({ ...s, phone: e.target.value }))
+            }
             placeholder="Telefon raqam"
           />
         </div>
