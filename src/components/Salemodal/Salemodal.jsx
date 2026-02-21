@@ -12,7 +12,10 @@ import {
 } from "antd";
 import { useCreateSaleMutation } from "../../context/service/sales.service";
 import { convertToBase, normalizeUnit, getBaseUnit } from "../../utils/units";
-import { useGetAllCustomersQuery, useGetCustomerSalesQuery } from "../../context/service/customer.service";
+import {
+  useGetAllCustomersQuery,
+  useGetCustomerSalesQuery,
+} from "../../context/service/customer.service";
 
 const { Option } = Select;
 const { Text, Title } = Typography;
@@ -25,7 +28,7 @@ export default function SaleModal({
   onSuccess,
 }) {
   const [form] = Form.useForm();
-  const [paymentType, setPaymentType] = useState("cash");
+  const [paymentType, setPaymentType] = useState(null);
   const [selectedCustomer, setSelectedCustomer] = useState("new");
   const [isMobile, setIsMobile] = useState(false);
 
@@ -46,7 +49,8 @@ export default function SaleModal({
   const mergedCustomers = React.useMemo(() => {
     if (!Array.isArray(customers)) return [];
     return customers.map((c) => {
-      const overlay = localClientsMap[c._id] || (c.phone && localClientsMap[c.phone]);
+      const overlay =
+        localClientsMap[c._id] || (c.phone && localClientsMap[c.phone]);
       return overlay ? { ...c, ...overlay } : c;
     });
   }, [customers, localClientsMap]);
@@ -56,30 +60,71 @@ export default function SaleModal({
   // compute previous debt for the currently selected customer limited to products in the cart
   const productSpecificPrevDebt = React.useMemo(() => {
     try {
-      if (!allSales || !selectedCustomer || selectedCustomer === "new" || !products || products.length === 0) return 0;
+      if (
+        !allSales ||
+        !selectedCustomer ||
+        selectedCustomer === "new" ||
+        !products ||
+        products.length === 0
+      )
+        return 0;
       // build set of product ids in current cart
-      const productIds = new Set(products.map((p) => (p && (p._id ? String(p._id) : String(p.product_id || p.id)))));
+      const productIds = new Set(
+        products.map(
+          (p) => p && (p._id ? String(p._id) : String(p.product_id || p.id)),
+        ),
+      );
 
       let sum = 0;
       for (const s of allSales) {
         // sale's customer id might be nested
-        const sCustomerId = s?.customer_id?._id || s?.customer_id || s?.customer?._id || s?.customer || null;
-        if (!sCustomerId || String(sCustomerId) !== String(selectedCustomer)) continue;
-        const unpaid = Math.max(Number(s.total_amount || 0) - Number(s.paid_amount || 0), 0);
+        const sCustomerId =
+          s?.customer_id?._id ||
+          s?.customer_id ||
+          s?.customer?._id ||
+          s?.customer ||
+          null;
+        if (!sCustomerId || String(sCustomerId) !== String(selectedCustomer))
+          continue;
+        const unpaid = Math.max(
+          Number(s.total_amount || 0) - Number(s.paid_amount || 0),
+          0,
+        );
         if (unpaid <= 0) continue;
         const lines = Array.isArray(s.products) ? s.products : s.items || [];
-        const totalLines = lines.reduce((acc, line) => acc + ((line && line.total != null) ? Number(line.total) : (Number(line?.price || 0) * Number(line?.quantity || line?.count || 0))), 0);
+        const totalLines = lines.reduce(
+          (acc, line) =>
+            acc +
+            (line && line.total != null
+              ? Number(line.total)
+              : Number(line?.price || 0) *
+                Number(line?.quantity || line?.count || 0)),
+          0,
+        );
         if (totalLines <= 0) continue;
         // compute matching products total in this sale
         const matchingTotal = lines.reduce((acc, line) => {
-          const lineId = line?.product_id || line?._id || line?.id || line?.product?._id;
+          const lineId =
+            line?.product_id || line?._id || line?.id || line?.product?._id;
           if (!line) return acc;
           if (lineId && productIds.has(String(lineId))) {
-            return acc + ((line.total != null) ? Number(line.total) : (Number(line.price || 0) * Number(line.quantity || line.count || 0)));
+            return (
+              acc +
+              (line.total != null
+                ? Number(line.total)
+                : Number(line.price || 0) *
+                  Number(line.quantity || line.count || 0))
+            );
           }
           // sometimes name was used as fallback — match only if productIds contains the name string
           if (line?.name && productIds.has(String(line.name))) {
-            return acc + ((line.total != null) ? Number(line.total) : (Number(line.price || 0) * Number(line.quantity || line.count || 0)));
+            return (
+              acc +
+              (line.total != null
+                ? Number(line.total)
+                : Number(line.price || 0) *
+                  Number(line.quantity || line.count || 0))
+            );
           }
           return acc;
         }, 0);
@@ -113,19 +158,24 @@ export default function SaleModal({
       // Agent ma'lumotlarini localStorage dan olish
       const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
       const isAgent = currentUser.role === "agent";
-
+      if (!values.payment_method) {
+        message.error("❌ To'lov turini tanlang");
+        return;
+      }
       // Mijoz ma'lumotlari
       const customerData =
-          selectedCustomer === "new"
-            ? {
-                name: values.customer_name,
-                phone: values.customer_phone,
-                address: values.customer_address || "",
-              }
-            : mergedCustomers.find((c) => c._id === selectedCustomer);
+        selectedCustomer === "new"
+          ? {
+              name: values.customer_name,
+              phone: values.customer_phone,
+              address: values.customer_address || "",
+            }
+          : mergedCustomers.find((c) => c._id === selectedCustomer);
 
-      const paidAmount =
-        paymentType === "qarz" ? Number(values.paid_amount) || 0 : totalAmount;
+  const paidAmount =
+    values.payment_method === "qarz"
+      ? Number(values.paid_amount) || 0
+      : totalAmount;
 
       // Payload - AGENT MA'LUMOTLARINI QO'SHAMIZ
       const payload = {
@@ -137,7 +187,10 @@ export default function SaleModal({
         products: products.map((p) => {
           // ensure unit normalization and include base quantity info when available
           const unit = normalizeUnit(p.unit);
-          const base_quantity = p.base_quantity !== undefined ? p.base_quantity : convertToBase(p.count, unit);
+          const base_quantity =
+            p.base_quantity !== undefined
+              ? p.base_quantity
+              : convertToBase(p.count, unit);
           return {
             product_id: p._id,
             quantity: Number(p.count),
@@ -148,7 +201,7 @@ export default function SaleModal({
           };
         }),
         paid_amount: paidAmount,
-        payment_method: paymentType,
+        payment_method: values.payment_method,
 
         // AGENT MA'LUMOTLARINI QO'SHAMIZ
         ...(isAgent && {
@@ -160,7 +213,7 @@ export default function SaleModal({
         }),
       };
 
-  // Remove noisy debug logs in production flow
+      // Remove noisy debug logs in production flow
 
       // API chaqirish
       const res = await createSale(payload).unwrap();
@@ -168,10 +221,10 @@ export default function SaleModal({
       console.log("✅ Backend response:", res);
 
       // BuyerData ni yuboramiz (onSuccess uchun)
-      const buyerData = {
-        ...customerData,
-        paymentMethod: paymentType,
-        paidAmount,
+  const buyerData = {
+  ...customerData,
+  paymentMethod: values.payment_method,
+  paidAmount,
         // Agent ma'lumotlarini buyerData ga ham qo'shamiz
         ...(isAgent && {
           agent: {
@@ -185,7 +238,7 @@ export default function SaleModal({
       message.success("Sotuv muvaffaqiyatli amalga oshirildi");
       form.resetFields();
       setSelectedCustomer("new");
-      setPaymentType("cash");
+      setPaymentType(null);
 
       if (onSuccess) onSuccess(buyerData, res);
       onClose();
@@ -210,16 +263,28 @@ export default function SaleModal({
           });
         } else {
           // if not found, clear the form fields (safe fallback)
-          form.resetFields(["customer_name", "customer_phone", "customer_address"]);
+          form.resetFields([
+            "customer_name",
+            "customer_phone",
+            "customer_address",
+          ]);
         }
       } else {
-        form.resetFields(["customer_name", "customer_phone", "customer_address"]);
+        form.resetFields([
+          "customer_name",
+          "customer_phone",
+          "customer_address",
+        ]);
       }
     } catch (err) {
       console.error("handleCustomerChange error:", err);
       // safe fallback
       try {
-        form.resetFields(["customer_name", "customer_phone", "customer_address"]);
+        form.resetFields([
+          "customer_name",
+          "customer_phone",
+          "customer_address",
+        ]);
       } catch (e) {}
       setSelectedCustomer("new");
       message.error("Mijoz tanlashda xato yuz berdi");
@@ -293,7 +358,6 @@ export default function SaleModal({
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={{
-          payment_method: "cash",
           paid_amount: totalAmount,
         }}
         size={isMobile ? "middle" : "large"}
@@ -403,14 +467,14 @@ export default function SaleModal({
           style={{ marginBottom: isMobile ? 12 : 24 }}
         >
           <Select
-            value={paymentType}
+            placeholder="To'lov turini tanlang"
             onChange={(v) => {
               setPaymentType(v);
               form.setFieldsValue({
+                payment_method: v,
                 paid_amount: v === "qarz" ? 0 : totalAmount,
               });
             }}
-            size={isMobile ? "middle" : "large"}
           >
             <Option value="cash">💵 Naqd</Option>
             <Option value="card">💳 Karta</Option>
@@ -489,7 +553,7 @@ export default function SaleModal({
                     Qarz:{" "}
                     {Math.max(
                       totalAmount - (form.getFieldValue("paid_amount") || 0),
-                      0
+                      0,
                     ).toLocaleString()}{" "}
                     so'm
                   </Text>
