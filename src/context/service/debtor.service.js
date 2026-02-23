@@ -22,7 +22,12 @@ export const debtorApi = apiSlice.injectEndpoints({
         method: "PUT",
         body: { amount },
       }),
-      invalidatesTags: ["Debtor"],
+      invalidatesTags: [
+        "Debtor",
+        "Customers",
+        { type: "Sales", id: "LIST" },
+        { type: "Sales", id: "DEBTORS" },
+      ],
     }),
 
     // 📌 Yetkazib beruvchi qarz to‘lash

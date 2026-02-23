@@ -158,10 +158,36 @@ export default function Sale() {
     setBuyerData(newBuyerData);
 
     const backendSale = saleResponse?.sale || saleResponse;
+    const backendCustomerTotals = saleResponse?.customer || {};
+    const backendCustomer =
+      backendSale?.customer_id || backendSale?.customer || {};
+    const resolvedCustomerId =
+      newBuyerData?._id ||
+      backendCustomer?._id ||
+      (typeof backendCustomer === "string" ? backendCustomer : null);
+    const resolvedCustomer = {
+      ...backendCustomer,
+      totalDebt:
+        backendCustomerTotals?.totalDebt ??
+        backendCustomer?.totalDebt ??
+        backendCustomer?.total_debt,
+      total_debt:
+        backendCustomerTotals?.totalDebt ??
+        backendCustomer?.total_debt ??
+        backendCustomer?.totalDebt,
+      totalPurchased:
+        backendCustomerTotals?.totalPurchased ?? backendCustomer?.totalPurchased,
+      totalPaid: backendCustomerTotals?.totalPaid ?? backendCustomer?.totalPaid,
+      ...newBuyerData,
+      _id: resolvedCustomerId,
+      id: resolvedCustomerId,
+    };
 
     const generatedSaleData = {
       _id: backendSale?._id,
-      customer: newBuyerData,
+      customer: resolvedCustomer,
+      customer_id: resolvedCustomerId || backendCustomer || null,
+      payment: backendSale?.payment || null,
       createdAt: backendSale?.createdAt || new Date().toISOString(),
       total_amount: backendSale?.total_amount || totalPrice,
       paid_amount: backendSale?.paid_amount || newBuyerData?.paidAmount || 0,

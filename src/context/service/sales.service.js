@@ -81,7 +81,12 @@ export const salesApi = apiSlice.injectEndpoints({
       // When a new sale is created we should also refresh customer-related
       // data (debts / customer sales) so invoices and prev-debt calculations
       // update immediately without a manual page refresh.
-      invalidatesTags: [{ type: "Sales", id: "LIST" }, "Store", "Customers"],
+      invalidatesTags: [
+        { type: "Sales", id: "LIST" },
+        "Store",
+        "Customers",
+        "Debtor",
+      ],
     }),
 
     /**
@@ -141,6 +146,8 @@ export const salesApi = apiSlice.injectEndpoints({
         { type: "Sales", id },
         { type: "Sales", id: "LIST" },
         { type: "Sales", id: "DEBTORS" },
+        "Customers",
+        "Debtor",
       ],
     }),
 

@@ -7,10 +7,16 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
 
   const totalAmount = sale.total_amount || sale.total || sale.finalAmount || 0;
   const paymentMethod = sale.payment_method || sale.paymentMethod || "cash";
-  const paidAmount =
-    paymentMethod === "cash" || paymentMethod === "card"
-      ? totalAmount
-      : sale.paid_amount || 0;
+  const paidAmount = (() => {
+    const explicitPaid =
+      sale.paid_amount !== undefined ? sale.paid_amount : sale.paidAmount;
+    if (explicitPaid !== undefined && explicitPaid !== null) {
+      return Number(explicitPaid) || 0;
+    }
+    return paymentMethod === "cash" || paymentMethod === "card"
+      ? Number(totalAmount) || 0
+      : 0;
+  })();
   const discount = Number(sale.discount || 0);
   const finalAmount = totalAmount - discount;
   const debtAmount = Math.max(0, finalAmount - paidAmount);
@@ -22,12 +28,7 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
     sale.customer_id ||
     (typeof sale.customer === "string" ? sale.customer : null);
 
-  const {
-    data: rawSales,
-    refetch,
-    isLoading,
-    isFetching,
-  } = useGetCustomerSalesQuery(customerId, {
+  const { data: rawSales, refetch } = useGetCustomerSalesQuery(customerId, {
     skip: !customerId,
     refetchOnMountOrArgChange: true,
   });
@@ -88,16 +89,19 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
       if (String(sCustId) !== String(customerId)) continue;
 
       const sTotal = Number(s.total_amount || s.total || 0);
-      const sPaymentMethod = String(
-        s.payment_method || s.paymentMethod || "",
-      ).toLowerCase();
-
-      let sPaid;
-      if (sPaymentMethod === "cash" || sPaymentMethod === "card") {
-        sPaid = sTotal; // To'liq to'langan, qarz yo'q
-      } else {
-        sPaid = Number(s.paid_amount || 0);
-      }
+      const sPaid = (() => {
+        const explicitPaid =
+          s.paid_amount !== undefined ? s.paid_amount : s.paidAmount;
+        if (explicitPaid !== undefined && explicitPaid !== null) {
+          return Number(explicitPaid) || 0;
+        }
+        const sPaymentMethod = String(
+          s.payment_method || s.paymentMethod || "",
+        ).toLowerCase();
+        return sPaymentMethod === "cash" || sPaymentMethod === "card"
+          ? sTotal
+          : 0;
+      })();
 
       const unpaid = Math.max(sTotal - sPaid, 0);
       if (unpaid <= 0) continue;
@@ -134,22 +138,43 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
     };
   }, [allSales, customerId, sale._id]);
 
+  const paymentSnapshot = sale.payment || {};
+
   // ✅ Oldingi qarzni eng ishonchli manbadan olish
   const previousDebtEffective = (() => {
     // 1. Backend getInvoiceData dan kelgan bo'lsa
-    if (sale.payment && typeof sale.payment.previous_debt !== "undefined") {
-      return Number(sale.payment.previous_debt) || 0;
+    if (typeof paymentSnapshot.previous_debt !== "undefined") {
+      return Math.max(Number(paymentSnapshot.previous_debt) || 0, 0);
     }
-    // 2. allSales dan hisoblangan (asosiy yo'l)
+
+    // 2. Backend jami qarzni bergan bo'lsa: oldingi = jami - joriy
+    if (typeof paymentSnapshot.total_debt !== "undefined") {
+      return Math.max((Number(paymentSnapshot.total_debt) || 0) - debtAmount, 0);
+    }
+
+    // 3. allSales dan hisoblangan (asosiy yo'l)
     if (previousDebt > 0) return previousDebt;
-    // 3. Zaxira: customer.totalDebt - joriy qarz
+
+    // 4. Query hali ulgurmagan holatda customer snapshot'dan olish
     const cust = sale.customer || sale.customer_id || {};
-    const custTotalDebt = Number(cust.totalDebt || cust.total_debt || 0) || 0;
+    const custTotalDebt =
+      Number(
+        cust.totalDebt ??
+          cust.total_debt ??
+          cust.total_debt_amount ??
+          paymentSnapshot.total_debt,
+      ) || 0;
     if (custTotalDebt > 0) {
       return Math.max(custTotalDebt - debtAmount, 0);
     }
+
     return 0;
   })();
+
+  const totalDebtEffective =
+    typeof paymentSnapshot.total_debt !== "undefined"
+      ? Math.max(Number(paymentSnapshot.total_debt) || 0, 0)
+      : previousDebtEffective + debtAmount;
 
   const getPrevDebtForItem = (item) => {
     if (!item) return 0;
@@ -470,7 +495,7 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                   borderTop: "2px solid #ff4d4f",
                 }}
               >
-                {fmt(previousDebtEffective + debtAmount)} so'm
+                {fmt(totalDebtEffective)} so'm
               </td>
             </tr>
           )}
