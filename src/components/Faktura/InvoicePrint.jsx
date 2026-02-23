@@ -15,7 +15,12 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
   const finalAmount = totalAmount - discount;
   const debtAmount = Math.max(0, finalAmount - paidAmount);
 
-  const customerId = sale.customer?._id || sale.customer?.id || sale.customer;
+  const customerId =
+    sale.customer?._id ||
+    sale.customer?.id ||
+    sale.customer_id?._id ||
+    sale.customer_id ||
+    (typeof sale.customer === "string" ? sale.customer : null);
 
   const {
     data: rawSales,
@@ -173,10 +178,11 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
     return 0;
   };
 
-  const checkNo =
-    sale.checkNumber || sale.check_number || sale._id
-      ? String(sale._id).slice(-6)
-      : String(Date.now()).slice(-6);
+  const checkNoSource =
+    sale.checkNumber || sale.check_number || sale.invoice_number || sale._id;
+  const checkNo = checkNoSource
+    ? String(checkNoSource).slice(-6)
+    : String(Date.now()).slice(-6);
 
   const agentData = sale.agent_id || sale.agent_info;
   const isAgentSale = !!(agentData || sale.sale_type === "agent");
@@ -221,28 +227,7 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
   };
   const numberStyle = { ...cellStyle, textAlign: "right" };
 
-  // ✅ Yuklanayotgan bo'lsa spinner ko'rsatamiz
-  if (isLoading || isFetching) {
-    return (
-      <div
-        ref={ref}
-        style={{
-          width: "210mm",
-          minHeight: "297mm",
-          padding: "15mm",
-          fontFamily: "Arial, sans-serif",
-          backgroundColor: "#fff",
-          margin: "0 auto",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "16px",
-        }}
-      >
-        Ma'lumotlar yuklanmoqda...
-      </div>
-    );
-  }
+  // Print jarayonini bloklamaslik uchun loading holatda ham fakturani render qilamiz.
 
   return (
     <div
@@ -338,8 +323,14 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
         </thead>
         <tbody>
           {products.map((item, idx) => {
-            const qty = Number(item.quantity || 0);
-            const price = Number(item.price || 0);
+            const name =
+              item.name ||
+              item.product_name ||
+              item.product?.name ||
+              item.title ||
+              "Noma'lum mahsulot";
+            const qty = Number(item.quantity || item.count || 0);
+            const price = Number(item.price || item.sell_price || 0);
             const itemTotal = Number(item.total || qty * price);
             const unit = item.unit ? ` ${item.unit}` : "";
             const currency = item.currency === "USD" ? "$" : "so'm";
@@ -348,7 +339,7 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
               <tr key={idx}>
                 <td style={numberStyle}>{idx + 1}</td>
                 <td style={cellStyle}>
-                  {item.name}
+                  {name}
                   {item.model && (
                     <div style={{ fontSize: "10px", color: "#666" }}>
                       Model: {item.model}
