@@ -168,6 +168,9 @@ export default function Clients() {
       if (isImportsModalOpen && selectedClient?._id) refetchImports();
 
       closePayModal();
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
     } catch (err) {
       console.error("To'lovda xatolik:", err);
       message.error(err?.data?.message || "To'lovda xatolik yuz berdi ❌");

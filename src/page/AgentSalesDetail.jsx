@@ -39,6 +39,24 @@ export default function AgentSalesDetail() {
   const { data, isLoading, refetch } = useGetAgentSalesQuery(id);
   const allSales = data?.sales || [];
 
+  const getHistoryPaid = (sale) =>
+    Array.isArray(sale?.payment_history)
+      ? sale.payment_history.reduce((sum, h) => sum + (Number(h?.amount) || 0), 0)
+      : 0;
+
+  const isCustomerFullyPaid = (sale) =>
+    Number(sale?.customer_id?.totalDebt) === 0;
+
+  const getEffectivePaid = (sale) => {
+    if (isCustomerFullyPaid(sale)) return Number(sale?.total_amount) || 0;
+    return Math.max(Number(sale?.paid_amount) || 0, getHistoryPaid(sale));
+  };
+
+  const getEffectiveDebt = (sale) => {
+    if (isCustomerFullyPaid(sale)) return 0;
+    return Math.max((Number(sale?.total_amount) || 0) - getEffectivePaid(sale), 0);
+  };
+
   // 📊 Filtrlangan sotuvlar va statistika
   const { filteredSales, stats, agentInfo } = useMemo(() => {
     let filtered = allSales;
@@ -54,13 +72,19 @@ export default function AgentSalesDetail() {
       });
     }
 
+    const normalized = filtered.map((s) => ({
+      ...s,
+      _effective_paid: getEffectivePaid(s),
+      _effective_debt: getEffectiveDebt(s),
+    }));
+
     // 📊 Statistika hisoblash
     // 📊 Statistika hisoblash
-    const statistics = filtered.reduce(
+    const statistics = normalized.reduce(
       (acc, s) => {
         acc.total += s.total_amount || 0;
-        acc.paid += s.paid_amount || 0;
-        acc.debt += s.remaining_debt || 0;
+        acc.paid += s._effective_paid || 0;
+        acc.debt += s._effective_debt || 0;
         acc.count += 1;
 
         // 🔹 Foyda hisoblash (har bir mahsulot bo‘yicha)
@@ -72,8 +96,8 @@ export default function AgentSalesDetail() {
         });
 
         // To'lov turlari bo'yicha
-        if (s.remaining_debt > 0) {
-          acc.debtSales += s.remaining_debt;
+        if (s._effective_debt > 0) {
+          acc.debtSales += s._effective_debt;
         } else if (s.payment_method === "card") {
           acc.card += s.total_amount || 0;
         } else {
@@ -103,7 +127,7 @@ export default function AgentSalesDetail() {
         : null;
 
     return {
-      filteredSales: filtered,
+      filteredSales: normalized,
       stats: statistics,
       agentInfo: agent,
     };
@@ -170,7 +194,7 @@ export default function AgentSalesDetail() {
       render: (m, record) => {
         let color, label, icon;
 
-        if (record.remaining_debt > 0) {
+        if ((record._effective_debt || 0) > 0) {
           color = "red";
           label = "Qarz";
           icon = "📝";
@@ -207,9 +231,9 @@ export default function AgentSalesDetail() {
     {
       title: "✅ To'langan",
       dataIndex: "paid_amount",
-      render: (v) => (
+      render: (_, record) => (
         <div style={{ fontWeight: 500, textAlign: "right", color: "#52c41a" }}>
-          {(v || 0).toLocaleString()} so'm
+          {(record._effective_paid || 0).toLocaleString()} so'm
         </div>
       ),
       align: "right",
@@ -218,19 +242,19 @@ export default function AgentSalesDetail() {
     {
       title: "📝 Qarz",
       dataIndex: "remaining_debt",
-      render: (v) => (
+      render: (_, record) => (
         <div
           style={{
             fontWeight: 500,
             textAlign: "right",
-            color: v > 0 ? "#ff4d4f" : "#52c41a",
+            color: (record._effective_debt || 0) > 0 ? "#ff4d4f" : "#52c41a",
           }}
         >
-          {(v || 0).toLocaleString()} so'm
+          {(record._effective_debt || 0).toLocaleString()} so'm
         </div>
       ),
       align: "right",
-      sorter: (a, b) => (a.remaining_debt || 0) - (b.remaining_debt || 0),
+      sorter: (a, b) => (a._effective_debt || 0) - (b._effective_debt || 0),
       width: 130,
     },
   ];
@@ -613,7 +637,7 @@ export default function AgentSalesDetail() {
                   >
                     💰 Jami: {(record.total_amount || 0).toLocaleString()} so'm
                   </div>
-                  {record.remaining_debt > 0 && (
+                  {(record._effective_debt || 0) > 0 && (
                     <div
                       style={{
                         fontSize: "14px",
@@ -621,7 +645,7 @@ export default function AgentSalesDetail() {
                         marginTop: 4,
                       }}
                     >
-                      📝 Qarz: {record.remaining_debt.toLocaleString()} so'm
+                      📝 Qarz: {(record._effective_debt || 0).toLocaleString()} so'm
                     </div>
                   )}
                 </div>

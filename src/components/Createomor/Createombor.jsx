@@ -174,6 +174,9 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
 
       for (let i = 0; i < values.products.length; i++) {
         const p = values.products[i];
+        if (!p.unit) {
+          return message.error(`Mahsulot ${i + 1} uchun birlikni tanlang`);
+        }
         if (!p.unit_price || !p.total_price) {
           return message.error(
             `Mahsulot ${i + 1} uchun narxlar to'ldirilmagan`
@@ -286,7 +289,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           initialValues={{
             usd_rate: 12500,
             paid_amount: 0,
-            products: [{ currency: "UZS", unit: "kg" }],
+            products: [{ currency: "UZS", unit: null }],
           }}
         >
           {isEditMode ? (
@@ -358,7 +361,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                       { required: true, message: "O'lchov birligini tanlang" },
                     ]}
                   >
-                    <Select options={unitOptions} />
+                    <Select options={unitOptions} placeholder="Birlikni tanlang" />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -609,9 +612,17 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                         <Col span={2}>
                           <Form.Item
                             name={[name, "unit"]}
-                            rules={[{ required: true }]}
+                            rules={[
+                              {
+                                required: true,
+                                message: "Birlikni tanlang",
+                              },
+                            ]}
                           >
-                            <Select options={unitOptions} />
+                            <Select
+                              options={unitOptions}
+                              placeholder="Birlik"
+                            />
                           </Form.Item>
                         </Col>
                         <Col span={3}>
@@ -705,7 +716,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     <Button
                       type="dashed"
                       block
-                      onClick={() => add({ currency: "UZS", unit: "kg" })}
+                      onClick={() => add({ currency: "UZS", unit: null })}
                     >
                       + Mahsulot qo'shish
                     </Button>

@@ -14,9 +14,11 @@ import {
   UserAddOutlined,
   FileSearchOutlined,
   PrinterOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import {
   useCreateAgentMutation,
+  useDeleteAgentMutation,
   useGetAgentsQuery,
   useUpdateAgentMutation,
 } from "../context/service/agent.service";
@@ -30,6 +32,7 @@ export default function Agent() {
   const { data, isLoading: listLoading } = useGetAgentsQuery();
   const [createAgent, { isLoading: creating }] = useCreateAgentMutation();
   const [updateAgent, { isLoading: updating }] = useUpdateAgentMutation();
+  const [deleteAgent, { isLoading: deleting }] = useDeleteAgentMutation();
 
   const showModal = () => setIsModalOpen(true);
 
@@ -84,6 +87,15 @@ export default function Agent() {
     }
   };
 
+  const handleDelete = async (agent) => {
+    try {
+      await deleteAgent(agent._id).unwrap();
+      message.success("Agent o'chirildi ✅");
+    } catch (err) {
+      message.error(err?.data?.message || "Agentni o'chirishda xatolik");
+    }
+  };
+
   // Table ustunlari
   const columns = [
     { title: "Ism", dataIndex: "name", key: "name" },
@@ -133,6 +145,18 @@ export default function Agent() {
           >
             Zakazlar
           </Button>
+
+          <Popconfirm
+            title="Agentni o'chirasizmi?"
+            description="Bu amalni ortga qaytarib bo'lmaydi."
+            okText="Ha, o'chirish"
+            cancelText="Bekor qilish"
+            onConfirm={() => handleDelete(record)}
+          >
+            <Button danger icon={<DeleteOutlined />} loading={deleting}>
+              Delete
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },

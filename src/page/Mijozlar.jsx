@@ -368,6 +368,10 @@ export default function Mijozlar() {
         } qarzidan ${payModal.amount.toLocaleString()} so'm to'landi`
       );
       refetchSales();
+      refetchClients();
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
     } catch (err) {
       message.error(err?.data?.message || "Xatolik yuz berdi");
       setCustomers(filteredCustomers);

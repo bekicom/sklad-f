@@ -30,10 +30,22 @@ export const agentApi = apiSlice.injectEndpoints({
 
     // ✏️ Agent yangilash
     updateAgent: build.mutation({
-      query: ({ id, data }) => ({
+      query: (payload) => {
+        const { id, data, ...rest } = payload;
+        return {
         url: `/api/agents/${id}`,
-        method: "PATCH",
-        body: data,
+          method: "PUT",
+          body: data ?? rest,
+        };
+      },
+      invalidatesTags: ["Agents"],
+    }),
+
+    // 🗑️ Agent o'chirish
+    deleteAgent: build.mutation({
+      query: (id) => ({
+        url: `/api/agents/${id}`,
+        method: "DELETE",
       }),
       invalidatesTags: ["Agents"],
     }),
@@ -60,6 +72,7 @@ export const {
   useGetAgentsQuery,
   useCreateAgentMutation,
   useUpdateAgentMutation,
+  useDeleteAgentMutation,
   useResetAgentPasswordMutation,
   useGetAgentSalesQuery, // 🔥 admin ham, agent ham bitta hook ishlatadi
 } = agentApi;
