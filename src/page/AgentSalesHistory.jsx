@@ -1,9 +1,10 @@
 // pages/AgentSalesHistory.jsx
-import React, { useMemo } from "react";
-import { Table, Tag, Space, Card } from "antd";
+import React, { useMemo, useState } from "react";
+import { Table, Tag, Space, Card, DatePicker, Button } from "antd";
 import dayjs from "dayjs";
 
 import { useGetSalesQuery } from "../context/service/sales.service";
+const { RangePicker } = DatePicker;
 
 export default function AgentSalesHistory() {
   // 🔑 Token ichidan agent ID olish
@@ -17,38 +18,48 @@ export default function AgentSalesHistory() {
   );
 
   const sales = useMemo(() => data?.sales || [], [data]);
-  const dailySummary = useMemo(() => {
-    const totalsByDay = sales.reduce((acc, s) => {
-      const dayKey = dayjs(s.createdAt).format("YYYY-MM-DD");
-      acc[dayKey] = (acc[dayKey] || 0) + Number(s.total_amount || 0);
-      return acc;
-    }, {});
+  const [dateRange, setDateRange] = useState([
+    dayjs().startOf("day"),
+    dayjs().endOf("day"),
+  ]);
 
-    const todayKey = dayjs().format("YYYY-MM-DD");
-    const latestDayKey = sales.length
-      ? dayjs(sales[0].createdAt).format("YYYY-MM-DD")
-      : todayKey;
-    const activeDayKey = totalsByDay[todayKey] ? todayKey : latestDayKey;
+  const filteredSales = useMemo(() => {
+    if (!dateRange || dateRange.length !== 2) return sales;
+    const [from, to] = dateRange;
+    if (!from || !to) return sales;
+    const start = dayjs(from).startOf("day");
+    const end = dayjs(to).endOf("day");
 
-    return {
-      activeDayKey,
-      total: totalsByDay[activeDayKey] || 0,
-      isToday: activeDayKey === todayKey,
-    };
-  }, [sales]);
-
-  const debtDailySummary = useMemo(() => {
-    const debtSales = sales.filter((s) => {
-      const sameDay =
-        dayjs(s.createdAt).format("YYYY-MM-DD") === dailySummary.activeDayKey;
-      return sameDay && s.payment_method === "qarz";
+    return sales.filter((s) => {
+      const d = dayjs(s.createdAt);
+      return d.isAfter(start) || d.isSame(start);
+    }).filter((s) => {
+      const d = dayjs(s.createdAt);
+      return d.isBefore(end) || d.isSame(end);
     });
+  }, [sales, dateRange]);
 
-    return {
-      count: debtSales.length,
-      total: debtSales.reduce((sum, s) => sum + Number(s.total_amount || 0), 0),
-    };
-  }, [sales, dailySummary.activeDayKey]);
+  const periodSummary = useMemo(() => {
+    const total = filteredSales.reduce(
+      (sum, s) => sum + Number(s.total_amount || 0),
+      0
+    );
+    const debtSales = filteredSales.filter((s) => s.payment_method === "qarz");
+    const debtTotal = debtSales.reduce(
+      (sum, s) => sum + Number(s.total_amount || 0),
+      0
+    );
+    return { total, debtTotal, debtCount: debtSales.length };
+  }, [filteredSales]);
+
+  const periodLabel = useMemo(() => {
+    if (!dateRange || dateRange.length !== 2 || !dateRange[0] || !dateRange[1]) {
+      return "Barcha davr";
+    }
+    return `${dayjs(dateRange[0]).format("DD.MM.YYYY")} dan ${dayjs(
+      dateRange[1]
+    ).format("DD.MM.YYYY")} gacha`;
+  }, [dateRange]);
 
   const columns = [
     {
@@ -115,10 +126,25 @@ export default function AgentSalesHistory() {
   return (
     <div>
       <h2>🧾 Mening sotuvlarim</h2>
+      <div style={{ marginBottom: 10 }}>
+        <Space wrap>
+          <RangePicker
+            value={dateRange}
+            onChange={(values) => setDateRange(values)}
+            format="DD.MM.YYYY"
+            allowClear
+          />
+          <Button
+            onClick={() =>
+              setDateRange([dayjs().startOf("day"), dayjs().endOf("day")])
+            }
+          >
+            Bir kunlik
+          </Button>
+        </Space>
+      </div>
       <div style={{ marginBottom: 12, color: "#666", fontSize: 13 }}>
-        {dailySummary.isToday
-          ? "Bugungi hisobot"
-          : `${dayjs(dailySummary.activeDayKey).format("DD.MM.YYYY")} kuni hisoboti`}
+        {periodLabel}
       </div>
       <div
         style={{
@@ -140,7 +166,7 @@ export default function AgentSalesHistory() {
             Jami savdo
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#135200" }}>
-            {dailySummary.total.toLocaleString()} so'm
+            {periodSummary.total.toLocaleString()} so'm
           </div>
         </Card>
 
@@ -156,10 +182,10 @@ export default function AgentSalesHistory() {
             Qarzga qilingan savdo
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#820014" }}>
-            {debtDailySummary.total.toLocaleString()} so'm
+            {periodSummary.debtTotal.toLocaleString()} so'm
           </div>
           <div style={{ marginTop: 6, fontSize: 13, color: "#cf1322" }}>
-            {debtDailySummary.count} ta sotuv
+            {periodSummary.debtCount} ta sotuv
           </div>
         </Card>
       </div>
@@ -167,7 +193,7 @@ export default function AgentSalesHistory() {
         loading={isLoading}
         rowKey={(r) => r._id}
         columns={columns}
-        dataSource={sales}
+        dataSource={filteredSales}
         pagination={{ pageSize: 10 }}
         expandable={{
           expandedRowRender: (record) => (
