@@ -18,6 +18,7 @@ import {
   useGetAllSalesQuery,
   useGetSaleInvoiceQuery,
   useMarkAsPrintedMutation, // 🔥 Backend API hook
+  useApproveSaleMutation,
 } from "../context/service/sales.service";
 import { useReactToPrint } from "react-to-print";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
@@ -47,6 +48,7 @@ export default function AgentOrders() {
 
   // 🔥 Backend API mutation hook
   const [markAsPrintedAPI] = useMarkAsPrintedMutation();
+  const [approveSaleAPI] = useApproveSaleMutation();
 
   // ✅ Yangi (yashil) sotuv IDlarini saqlash (faqat real-time uchun)
   const [newSaleIds, setNewSaleIds] = useState(new Set());
@@ -242,8 +244,20 @@ export default function AgentOrders() {
             ).toLocaleString()} so'm\n\n📄 Darhol chek chiqarilsinmi?`
           )
         ) {
-          setSelectedSaleId(sale._id);
-          setTimeout(() => handlePrint(), 500);
+          (async () => {
+            try {
+              if (sale?.status === "pending") {
+                await approveSaleAPI({ id: sale._id }).unwrap();
+                await refetch();
+              }
+              setSelectedSaleId(sale._id);
+              setTimeout(() => handlePrint(), 500);
+            } catch (err) {
+              message.error(
+                err?.data?.message || "Sotuvni tasdiqlash/chop etishda xatolik"
+              );
+            }
+          })();
         }
 
         refetch();
@@ -449,9 +463,21 @@ export default function AgentOrders() {
               type={isNew ? "primary" : isPrinted ? "default" : "primary"}
               size="small"
               icon={<PrinterOutlined />}
-              onClick={() => {
-                setSelectedSaleId(record._id);
-                setTimeout(() => handlePrint(), 300);
+              onClick={async () => {
+                try {
+                  if (record.status === "pending") {
+                    await approveSaleAPI({ id: record._id }).unwrap();
+                    message.success("✅ Agent sotuv tasdiqlandi");
+                    await refetch();
+                  }
+
+                  setSelectedSaleId(record._id);
+                  setTimeout(() => handlePrint(), 300);
+                } catch (err) {
+                  message.error(
+                    err?.data?.message || "Sotuvni tasdiqlash/chop etishda xatolik"
+                  );
+                }
               }}
               style={{
                 backgroundColor: isNew ? "#52c41a" : undefined,

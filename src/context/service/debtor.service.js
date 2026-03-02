@@ -16,11 +16,22 @@ export const debtorApi = apiSlice.injectEndpoints({
     }),
 
     // 📌 Dukonchi qarz to‘lash
-    payCustomerDebt: builder.mutation({
-      query: ({ id, amount }) => ({
-        url: `customers/pay-debt/${id}`,
+    payCustomerDebtDebtor: builder.mutation({
+      query: ({ id, amount, note }) => ({
+        url: `api/customers/pay-debt/${id}?note=${encodeURIComponent(
+          note || "",
+        )}`,
         method: "PUT",
-        body: { amount },
+        body: {
+          amount,
+          note,
+          izoh: note,
+          description: note,
+          comment: note,
+          payment_note: note,
+          payNote: note,
+        },
+        headers: note ? { "x-payment-note": note } : undefined,
       }),
       invalidatesTags: [
         "Debtor",
@@ -33,8 +44,8 @@ export const debtorApi = apiSlice.injectEndpoints({
     // 📌 Yetkazib beruvchi qarz to‘lash
     paySupplierDebt: builder.mutation({
       query: ({ clientId, amount }) => ({
-        url: `clients/${clientId}/pay`,
-        method: "PUT",
+        url: `api/clients/${clientId}/pay`,
+        method: "POST",
         body: { amount },
       }),
       invalidatesTags: ["Debtor"],
@@ -53,7 +64,9 @@ export const debtorApi = apiSlice.injectEndpoints({
 export const {
   useGetDebtorsQuery,
   useCreateDebtorMutation,
-  usePayCustomerDebtMutation,
+  usePayCustomerDebtDebtorMutation,
   usePaySupplierDebtMutation,
   useDeleteDebtorMutation,
 } = debtorApi;
+
+export const usePayCustomerDebtMutation = usePayCustomerDebtDebtorMutation;

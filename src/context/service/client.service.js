@@ -87,10 +87,10 @@ export const clientApi = apiSlice.injectEndpoints({
 
     // 📌 Qarz to'lash
     payDebt: builder.mutation({
-      query: ({ clientId, amount }) => ({
+      query: ({ clientId, amount, note }) => ({
         url: `api/clients/${clientId}/pay`,
         method: "POST",
-        body: { amount },
+        body: { amount, note, description: note, comment: note },
       }),
       invalidatesTags: ["Clients", "ClientPayments"],
     }),

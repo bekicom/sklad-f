@@ -36,6 +36,7 @@ export default function Mijozlar() {
     open: false,
     customer: null,
     amount: null,
+    note: "",
   });
   const [historyModal, setHistoryModal] = useState({
     open: false,
@@ -207,6 +208,10 @@ export default function Mijozlar() {
 
   // 🔹 To'lov tarixi jadvali
   const PaymentHistoryTable = ({ history = [] }) => {
+    const sortedHistory = [...history].sort(
+      (a, b) => new Date(b?.date || 0) - new Date(a?.date || 0)
+    );
+
     const columns = [
       { title: "№", render: (_, __, index) => index + 1, width: 50 },
       {
@@ -222,13 +227,27 @@ export default function Mijozlar() {
         align: "right",
         render: (v) => (v || 0).toLocaleString("uz-UZ") + " so'm",
       },
+      {
+        title: "Izoh",
+        dataIndex: "note",
+        key: "note",
+        render: (_, record) =>
+          record?.payment_note ||
+          record?.note ||
+          record?.sale_note ||
+          record?.sale_notes ||
+          record?.description ||
+          record?.comment ||
+          record?.izoh ||
+          "Qarz to'lovi",
+      },
     ];
     return (
       <Table
         size="small"
         rowKey={(_, i) => i}
         columns={columns}
-        dataSource={history}
+        dataSource={sortedHistory}
         pagination={false}
       />
     );
@@ -315,6 +334,16 @@ export default function Mijozlar() {
       message.error("To'lov summasi qarzdan oshmasligi kerak!");
       return;
     }
+    if (!payModal.note || !payModal.note.trim()) {
+      message.error("Izoh kiriting");
+      return;
+    }
+
+    const payload = {
+      id: payModal.customer._id,
+      amount: payModal.amount,
+      note: payModal.note?.trim() || "",
+    };
 
     // ✅ Optimistik yangilash
     setCustomers((prev) =>
@@ -329,18 +358,16 @@ export default function Mijozlar() {
       )
     );
 
-    setPayModal({ open: false, customer: null, amount: null });
+    setPayModal({ open: false, customer: null, amount: null, note: "" });
 
     try {
-      await payCustomerDebt({
-        id: payModal.customer._id,
-        amount: payModal.amount,
-      }).unwrap();
+      await payCustomerDebt(payload).unwrap();
       message.success(
         `${
           payModal.customer.name
         } qarzidan ${payModal.amount.toLocaleString()} so'm to'landi`
       );
+      refetchSales();
     } catch (err) {
       message.error(err?.data?.message || "Xatolik yuz berdi");
       setCustomers(filteredCustomers);
@@ -422,7 +449,12 @@ export default function Mijozlar() {
                 type="primary"
                 size="small"
                 onClick={() =>
-                  setPayModal({ open: true, customer: record, amount: null })
+                  setPayModal({
+                    open: true,
+                    customer: record,
+                    amount: null,
+                    note: "",
+                  })
                 }
               >
                 To'lov
@@ -448,8 +480,12 @@ export default function Mijozlar() {
                   setHistoryModal({
                     open: true,
                     customer: record,
-                    history: record.sales.flatMap(
-                      (s) => s.payment_history || []
+                    history: record.sales.flatMap((s) =>
+                      (s.payment_history || []).map((h) => ({
+                        ...h,
+                        sale_note: s?.notes || "",
+                        sale_notes: s?.notes || "",
+                      })),
                     ),
                   })
                 }
@@ -687,12 +723,13 @@ export default function Mijozlar() {
         open={payModal.open}
         title={`💵 Qarz to'lash — ${payModal.customer?.name}`}
         onCancel={() =>
-          setPayModal({ open: false, customer: null, amount: null })
+          setPayModal({ open: false, customer: null, amount: null, note: "" })
         }
         onOk={handlePay}
         confirmLoading={paying}
         okText="To'lash"
         cancelText="Bekor qilish"
+        okButtonProps={{ disabled: !payModal.note || !payModal.note.trim() }}
       >
         <p>
           Qolgan qarz:{" "}
@@ -709,6 +746,15 @@ export default function Mijozlar() {
             `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
           }
           parser={(value) => value.replace(/(,*)/g, "")}
+        />
+        <Input.TextArea
+          value={payModal.note}
+          onChange={(e) =>
+            setPayModal((p) => ({ ...p, note: e.target.value }))
+          }
+          placeholder="Izoh kiriting (masalan: 28-aprel uchun to'lov)"
+          autoSize={{ minRows: 3, maxRows: 5 }}
+          style={{ marginTop: 12 }}
         />
       </Modal>
 

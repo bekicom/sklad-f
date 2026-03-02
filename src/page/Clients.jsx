@@ -6,6 +6,7 @@ import {
   Typography,
   Modal,
   InputNumber,
+  Input,
   message,
   Spin,
   Card,
@@ -44,6 +45,7 @@ export default function Clients() {
 
   const [selectedClient, setSelectedClient] = useState(null);
   const [amount, setAmount] = useState(0);
+  const [payNote, setPayNote] = useState("");
   const [addAmount, setAddAmount] = useState(0);
 
   // Statistika
@@ -97,6 +99,7 @@ export default function Clients() {
   const openPayModal = (client) => {
     setSelectedClient(client);
     setAmount(client?.totalDebt || 0);
+    setPayNote("");
     setIsPayModalOpen(true);
   };
   const openAddModal = (client) => {
@@ -120,6 +123,7 @@ export default function Clients() {
   const closePayModal = () => {
     setIsPayModalOpen(false);
     setAmount(0);
+    setPayNote("");
     setSelectedClient(null);
   };
   const closeAddModal = () => {
@@ -151,7 +155,11 @@ export default function Clients() {
       return;
     }
     try {
-      await payDebt({ clientId: selectedClient._id, amount }).unwrap();
+      await payDebt({
+        clientId: selectedClient._id,
+        amount,
+        note: payNote?.trim() || "",
+      }).unwrap();
       message.success("To'lov qabul qilindi ✅");
 
       refetchClients();
@@ -356,6 +364,13 @@ export default function Clients() {
             so'm
           </b>
         </div>
+        <Input.TextArea
+          value={payNote}
+          onChange={(e) => setPayNote(e.target.value)}
+          placeholder="Izoh kiriting (masalan: 3-yuk qarzi uchun 300 000 so'm)"
+          autoSize={{ minRows: 3, maxRows: 5 }}
+          style={{ marginTop: 12 }}
+        />
       </Modal>
       <Modal
         title={`Astatka qo'shish — ${selectedClient?.name || "-"}`}

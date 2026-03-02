@@ -51,10 +51,21 @@ export const customerApi = apiSlice.injectEndpoints({
     }),
 
     payCustomerDebt: builder.mutation({
-      query: ({ id, amount }) => ({
-        url: `api/customers/pay-debt/${id}`,
+      query: ({ id, amount, note }) => ({
+        url: `api/customers/pay-debt/${id}?note=${encodeURIComponent(
+          note || "",
+        )}`,
         method: "PUT",
-        body: { amount },
+        body: {
+          amount,
+          note,
+          izoh: note,
+          description: note,
+          comment: note,
+          payment_note: note,
+          payNote: note,
+        },
+        headers: note ? { "x-payment-note": note } : undefined,
       }),
       invalidatesTags: ["Customers"],
     }),
