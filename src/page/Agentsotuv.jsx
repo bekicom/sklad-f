@@ -614,13 +614,13 @@ export default function Agentsotuv() {
         .products-section { min-width: 0 !important; }
 
         @media (max-width: 900px) {
-          .products-grid { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+          .products-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }
 
         @media (max-width: 768px) {
           .search-filters { flex-direction: column !important; gap: 8px !important; }
           .search-input, .category-select { width: 100% !important; min-width: unset !important; flex: none !important; }
-          .products-grid { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+          .products-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }
 
         @media (max-width: 600px) {
