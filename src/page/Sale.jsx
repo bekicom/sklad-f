@@ -21,9 +21,15 @@ import SaleModal from "../components/Salemodal/Salemodal";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
 
 const { Option } = Select;
+const normalizeSearchText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .replace(/znez/g, "anez")
+    .replace(/['`’]/g, "");
 
 export default function Sale() {
-  const { data: productsData = [], isLoading, refetch: refetchStore } = useGetAllStoreItemsQuery();
+  const { data: productsData = [], isLoading, refetch: refetchStore } =
+    useGetAllStoreItemsQuery({ view: "sale" });
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Barchasi");
@@ -58,14 +64,16 @@ export default function Sale() {
 
  const filteredProducts = useMemo(() => {
    if (!productsData || productsData.length === 0) return [];
+   const normalizedSearch = normalizeSearchText(search);
    return productsData.filter((p) => {
      // 🔑 Omborda qolmagan mahsulotlarni chiqarib tashlaymiz
      // 0.1 dan kam bo'lsa ham ko'rsatmaymiz
      if (!p.quantity || p.quantity < 0.1) return false;
 
-     const matchesSearch = p.product_name
-       ?.toLowerCase()
-       .includes(search.toLowerCase());
+     const normalizedProduct = normalizeSearchText(
+       `${p.product_name || ""} ${p.model || ""}`
+     );
+     const matchesSearch = normalizedProduct.includes(normalizedSearch);
      const matchesCategory =
        category === "Barchasi" || p.product_name === category;
      return matchesSearch && matchesCategory;

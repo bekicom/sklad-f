@@ -4,10 +4,13 @@ export const storeApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // 📥 Ombordagi barcha mahsulotlarni olish
     getAllStoreItems: builder.query({
-      query: () => ({
-        url: "api/store",
-        method: "GET",
-      }),
+      query: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return {
+          url: `api/store${query ? `?${query}` : ""}`,
+          method: "GET",
+        };
+      },
       providesTags: ["Store"],
     }),
 

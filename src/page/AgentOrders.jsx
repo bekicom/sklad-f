@@ -15,7 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import {
-  useGetAllSalesQuery,
+  useGetSalesQuery,
   useGetSaleInvoiceQuery,
   useMarkAsPrintedMutation, // 🔥 Backend API hook
   useApproveSaleMutation,
@@ -23,12 +23,17 @@ import {
 import { useReactToPrint } from "react-to-print";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
 import { io } from "socket.io-client";
+import { useParams } from "react-router-dom";
 import { ArrowLeftOutlined, PrinterOutlined } from "@ant-design/icons";
 
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://sklad.richman.uz";
+
 export default function AgentOrders() {
-  const { data, isLoading, refetch } = useGetAllSalesQuery();
+  const { id: routeAgentId } = useParams();
   const [selectedSaleId, setSelectedSaleId] = useState(null);
-  const [agentFilter, setAgentFilter] = useState("all");
+  const [pendingPrintSaleId, setPendingPrintSaleId] = useState(null);
+  const [isPrintInProgress, setIsPrintInProgress] = useState(false);
+  const [agentFilter, setAgentFilter] = useState(routeAgentId || "all");
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [socketConnected, setSocketConnected] = useState(false);
 
@@ -40,6 +45,16 @@ export default function AgentOrders() {
   const [pageSize, setPageSize] = useState(() => {
     const savedPageSize = localStorage.getItem("agentOrdersPageSize");
     return savedPageSize ? parseInt(savedPageSize) : 15;
+  });
+
+  const activeAgentId =
+    routeAgentId || (agentFilter !== "all" ? agentFilter : undefined);
+
+  const { data, isLoading, refetch } = useGetSalesQuery({
+    saleType: "agent",
+    page: currentPage,
+    limit: pageSize,
+    ...(activeAgentId ? { agentId: activeAgentId } : {}),
   });
 
   const printRef = useRef(null);
@@ -69,7 +84,11 @@ export default function AgentOrders() {
   };
 
   // Invoice olish
-  const { data: invoiceData } = useGetSaleInvoiceQuery(selectedSaleId, {
+  const {
+    data: invoiceData,
+    isFetching: isInvoiceFetching,
+    isError: isInvoiceError,
+  } = useGetSaleInvoiceQuery(selectedSaleId, {
     skip: !selectedSaleId,
   });
 
@@ -106,22 +125,63 @@ export default function AgentOrders() {
         await markAsPrintedInBackend(selectedSaleId);
       }
 
+      setIsPrintInProgress(false);
+      setPendingPrintSaleId(null);
       setSelectedSaleId(null);
-      // 🔄 Sahifani yangilash - pagination saqlanadi
-      window.location.reload();
     },
     onPrintError: (error) => {
       console.error("Print error:", error);
       message.error("❌ Chop etishda xatolik yuz berdi");
+      setIsPrintInProgress(false);
+      setPendingPrintSaleId(null);
     },
   });
 
+  const queuePrint = async (sale) => {
+    if (!sale?._id || isPrintInProgress) return;
+
+    try {
+      if (sale.status === "pending") {
+        await approveSaleAPI({ id: sale._id }).unwrap();
+        message.success("✅ Agent sotuv tasdiqlandi");
+        await refetch();
+      }
+
+      setSelectedSaleId(sale._id);
+      setPendingPrintSaleId(sale._id);
+    } catch (err) {
+      message.error(
+        err?.data?.message || "Sotuvni tasdiqlash/chop etishda xatolik"
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (!pendingPrintSaleId || isPrintInProgress) return;
+    if (selectedSaleId !== pendingPrintSaleId) return;
+    if (isInvoiceFetching) return;
+
+    if (isInvoiceError || !invoiceData?.invoice) {
+      message.error("❌ Faktura ma'lumotini olishda xatolik");
+      setPendingPrintSaleId(null);
+      setIsPrintInProgress(false);
+      return;
+    }
+
+    setIsPrintInProgress(true);
+    handlePrint?.();
+  }, [
+    pendingPrintSaleId,
+    selectedSaleId,
+    isPrintInProgress,
+    isInvoiceFetching,
+    isInvoiceError,
+    invoiceData,
+    handlePrint,
+  ]);
+
   // Faqat agent sotuvlari
-  const baseSales = useMemo(
-    () =>
-      (data?.sales || []).filter((s) => s.agent_id || s.sale_type === "agent"),
-    [data]
-  );
+  const baseSales = useMemo(() => data?.sales || [], [data]);
 
   // Agent ro'yxati (filtr uchun)
   const agentOptions = useMemo(() => {
@@ -148,17 +208,11 @@ export default function AgentOrders() {
   }, [baseSales]);
 
   // Agentga ko'ra filtr
-  const sales = useMemo(() => {
-    if (agentFilter === "all") return baseSales;
-    return baseSales.filter((s) => {
-      const agentId = s.agent_id?._id || s.agent_info?.name;
-      return agentId === agentFilter;
-    });
-  }, [baseSales, agentFilter]);
+  const sales = baseSales;
 
   // ✅ Socket connection va yangi sotuv kuzatuvi
   useEffect(() => {
-    const socket = io("wss://sklad.richman.uz", {
+    const socket = io(SOCKET_URL, {
       transports: ["websocket"],
       withCredentials: true,
       reconnection: true,
@@ -245,18 +299,7 @@ export default function AgentOrders() {
           )
         ) {
           (async () => {
-            try {
-              if (sale?.status === "pending") {
-                await approveSaleAPI({ id: sale._id }).unwrap();
-                await refetch();
-              }
-              setSelectedSaleId(sale._id);
-              setTimeout(() => handlePrint(), 500);
-            } catch (err) {
-              message.error(
-                err?.data?.message || "Sotuvni tasdiqlash/chop etishda xatolik"
-              );
-            }
+            await queuePrint(sale);
           })();
         }
 
@@ -325,6 +368,11 @@ export default function AgentOrders() {
       setPageSize(size);
       setCurrentPage(1); // Page size o'zgarganda 1-pagega qaytish
     }
+  };
+
+  const handleAgentFilterChange = (value) => {
+    setAgentFilter(value);
+    setCurrentPage(1);
   };
 
   // ✅ Jadval ustunlari
@@ -463,21 +511,9 @@ export default function AgentOrders() {
               type={isNew ? "primary" : isPrinted ? "default" : "primary"}
               size="small"
               icon={<PrinterOutlined />}
+              loading={isPrintInProgress && pendingPrintSaleId === record._id}
               onClick={async () => {
-                try {
-                  if (record.status === "pending") {
-                    await approveSaleAPI({ id: record._id }).unwrap();
-                    message.success("✅ Agent sotuv tasdiqlandi");
-                    await refetch();
-                  }
-
-                  setSelectedSaleId(record._id);
-                  setTimeout(() => handlePrint(), 300);
-                } catch (err) {
-                  message.error(
-                    err?.data?.message || "Sotuvni tasdiqlash/chop etishda xatolik"
-                  );
-                }
+                await queuePrint(record);
               }}
               style={{
                 backgroundColor: isNew ? "#52c41a" : undefined,
@@ -588,11 +624,12 @@ export default function AgentOrders() {
                 style={{ minWidth: 280 }}
                 options={agentOptions}
                 value={agentFilter}
-                onChange={setAgentFilter}
+                onChange={handleAgentFilterChange}
                 placeholder="Agent tanlang..."
                 showSearch
                 optionFilterProp="label"
                 size="large"
+                disabled={Boolean(routeAgentId)}
               />
             </div>
           </Space>
@@ -657,6 +694,7 @@ export default function AgentOrders() {
         pagination={{
           current: currentPage,
           pageSize: pageSize,
+          total: data?.pagination?.total || 0,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total, range) =>

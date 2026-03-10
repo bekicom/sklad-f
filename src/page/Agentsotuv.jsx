@@ -23,6 +23,11 @@ import SaleModal from "../components/Salemodal/Salemodal";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
 
 const { Option } = Select;
+const normalizeSearchText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .replace(/znez/g, "anez")
+    .replace(/['`’]/g, "");
 
 /**
  * ✅ CartContent OUTSIDE the page component
@@ -217,7 +222,9 @@ function CartContent({
 }
 
 export default function Agentsotuv() {
-  const { data: productsData = [], isLoading } = useGetAllStoreItemsQuery();
+  const { data: productsData = [], isLoading } = useGetAllStoreItemsQuery({
+    view: "sale",
+  });
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Barchasi");
@@ -257,11 +264,13 @@ export default function Agentsotuv() {
   };
 
   const filteredProducts = useMemo(() => {
+    const normalizedSearch = normalizeSearchText(search);
     return (productsData || []).filter((p) => {
       if (p.quantity <= 0) return false;
-      const bySearch = p.product_name
-        ?.toLowerCase()
-        .includes(search.toLowerCase());
+      const normalizedProduct = normalizeSearchText(
+        `${p.product_name || ""} ${p.model || ""}`
+      );
+      const bySearch = normalizedProduct.includes(normalizedSearch);
       const byCategory = category === "Barchasi" || p.product_name === category;
       return bySearch && byCategory;
     });
