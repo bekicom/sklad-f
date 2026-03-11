@@ -6,11 +6,13 @@ import {
   Space,
   message,
   Select,
+  Input,
   Row,
   Col,
   Badge,
   notification,
   Tooltip,
+  Popconfirm,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -19,14 +21,20 @@ import {
   useGetSaleInvoiceQuery,
   useMarkAsPrintedMutation, // 🔥 Backend API hook
   useApproveSaleMutation,
+  useDeleteSaleMutation,
 } from "../context/service/sales.service";
 import { useReactToPrint } from "react-to-print";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
 import { io } from "socket.io-client";
 import { useParams } from "react-router-dom";
-import { ArrowLeftOutlined, PrinterOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  PrinterOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://sklad.richman.uz";
+const onlyDigits = (value = "") => String(value).replace(/\D/g, "");
 
 export default function AgentOrders() {
   const { id: routeAgentId } = useParams();
@@ -34,6 +42,7 @@ export default function AgentOrders() {
   const [pendingPrintSaleId, setPendingPrintSaleId] = useState(null);
   const [isPrintInProgress, setIsPrintInProgress] = useState(false);
   const [agentFilter, setAgentFilter] = useState(routeAgentId || "all");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [socketConnected, setSocketConnected] = useState(false);
 
@@ -49,11 +58,14 @@ export default function AgentOrders() {
 
   const activeAgentId =
     routeAgentId || (agentFilter !== "all" ? agentFilter : undefined);
+  const isSearching = Boolean(customerSearch.trim());
+  const effectivePage = isSearching ? 1 : currentPage;
+  const effectiveLimit = isSearching ? 500 : pageSize;
 
   const { data, isLoading, refetch } = useGetSalesQuery({
     saleType: "agent",
-    page: currentPage,
-    limit: pageSize,
+    page: effectivePage,
+    limit: effectiveLimit,
     ...(activeAgentId ? { agentId: activeAgentId } : {}),
   });
 
@@ -64,6 +76,7 @@ export default function AgentOrders() {
   // 🔥 Backend API mutation hook
   const [markAsPrintedAPI] = useMarkAsPrintedMutation();
   const [approveSaleAPI] = useApproveSaleMutation();
+  const [deleteSaleAPI, { isLoading: isDeleteLoading }] = useDeleteSaleMutation();
 
   // ✅ Yangi (yashil) sotuv IDlarini saqlash (faqat real-time uchun)
   const [newSaleIds, setNewSaleIds] = useState(new Set());
@@ -207,8 +220,29 @@ export default function AgentOrders() {
     ];
   }, [baseSales]);
 
-  // Agentga ko'ra filtr
-  const sales = baseSales;
+  // Agent + mijoz telefon/nom qidiruvi
+  const sales = useMemo(() => {
+    if (!customerSearch.trim()) return baseSales;
+    const q = customerSearch.toLowerCase().trim();
+    const qDigits = onlyDigits(customerSearch);
+    const qLast4 = qDigits.length >= 4 ? qDigits.slice(-4) : qDigits;
+
+    return baseSales.filter((sale) => {
+      const customer = sale?.customer_id || {};
+      const name = String(customer?.name || "").toLowerCase();
+      const phone = String(customer?.phone || "");
+      const phoneDigits = onlyDigits(phone);
+
+      return (
+        name.includes(q) ||
+        phone.toLowerCase().includes(q) ||
+        (qDigits
+          ? phoneDigits.includes(qDigits) ||
+            (qLast4 ? phoneDigits.endsWith(qLast4) : false)
+          : false)
+      );
+    });
+  }, [baseSales, customerSearch]);
 
   // ✅ Socket connection va yangi sotuv kuzatuvi
   useEffect(() => {
@@ -375,6 +409,26 @@ export default function AgentOrders() {
     setCurrentPage(1);
   };
 
+  const handleCustomerSearchChange = (e) => {
+    setCustomerSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleDeleteSale = async (saleId) => {
+    try {
+      await deleteSaleAPI(saleId).unwrap();
+      setNewSaleIds((prev) => {
+        const next = new Set(prev);
+        next.delete(saleId);
+        return next;
+      });
+      message.success("✅ Agent zakazi o'chirildi");
+      refetch();
+    } catch (err) {
+      message.error(err?.data?.message || "❌ Zakazni o'chirishda xatolik");
+    }
+  };
+
   // ✅ Jadval ustunlari
   const columns = [
     {
@@ -506,26 +560,47 @@ export default function AgentOrders() {
         const isNew = status.type === "new";
 
         return (
-          <Tooltip title={isPrinted ? "Qayta chop etish" : "Chek chiqarish"}>
-            <Button
-              type={isNew ? "primary" : isPrinted ? "default" : "primary"}
-              size="small"
-              icon={<PrinterOutlined />}
-              loading={isPrintInProgress && pendingPrintSaleId === record._id}
-              onClick={async () => {
-                await queuePrint(record);
-              }}
-              style={{
-                backgroundColor: isNew ? "#52c41a" : undefined,
-                borderColor: isNew ? "#52c41a" : undefined,
+          <Space>
+            <Tooltip title={isPrinted ? "Qayta chop etish" : "Chek chiqarish"}>
+              <Button
+                type={isNew ? "primary" : isPrinted ? "default" : "primary"}
+                size="small"
+                icon={<PrinterOutlined />}
+                loading={isPrintInProgress && pendingPrintSaleId === record._id}
+                onClick={async () => {
+                  await queuePrint(record);
+                }}
+                style={{
+                  backgroundColor: isNew ? "#52c41a" : undefined,
+                  borderColor: isNew ? "#52c41a" : undefined,
+                }}
+              >
+                {isPrinted ? "Qayta chop" : "📄 Chek"}
+              </Button>
+            </Tooltip>
+
+            <Popconfirm
+              title="Zakazni o'chirish"
+              description="Bu agent zakazi o'chiriladi. Davom etasizmi?"
+              okText="Ha, o'chir"
+              cancelText="Bekor qilish"
+              onConfirm={async () => {
+                await handleDeleteSale(record._id);
               }}
             >
-              {isPrinted ? "Qayta chop" : "📄 Chek"}
-            </Button>
-          </Tooltip>
+              <Button
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                loading={isDeleteLoading}
+              >
+                Delete
+              </Button>
+            </Popconfirm>
+          </Space>
         );
       },
-      width: 120,
+      width: 220,
     },
   ];
 
@@ -632,6 +707,13 @@ export default function AgentOrders() {
                 disabled={Boolean(routeAgentId)}
               />
             </div>
+            <Input
+              style={{ minWidth: 280 }}
+              placeholder="Mijoz yoki tel (oxirgi 4 raqam)..."
+              value={customerSearch}
+              onChange={handleCustomerSearchChange}
+              allowClear
+            />
           </Space>
         </Col>
       </Row>
@@ -694,7 +776,7 @@ export default function AgentOrders() {
         pagination={{
           current: currentPage,
           pageSize: pageSize,
-          total: data?.pagination?.total || 0,
+          total: isSearching ? sales.length : data?.pagination?.total || 0,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total, range) =>

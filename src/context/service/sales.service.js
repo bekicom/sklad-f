@@ -117,6 +117,9 @@ export const salesApi = apiSlice.injectEndpoints({
       invalidatesTags: (r, e, id) => [
         { type: "Sales", id },
         { type: "Sales", id: "LIST" },
+        "Store",
+        "Customers",
+        "Debtor",
       ],
     }),
 

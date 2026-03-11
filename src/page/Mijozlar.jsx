@@ -23,6 +23,7 @@ import { apiSlice } from "../context/service/api.service";
 import { usePayCustomerDebtMutation } from "../context/service/debtor.service";
 
 const { Text } = Typography;
+const onlyDigits = (value = "") => String(value).replace(/\D/g, "");
 
 export default function Mijozlar() {
   const {
@@ -150,12 +151,24 @@ export default function Mijozlar() {
     }
     let arr = Array.from(map.values());
     if (!q.trim()) return arr;
-    const qq = q.toLowerCase();
+    const qq = q.toLowerCase().trim();
+    const qDigits = onlyDigits(q);
     return arr.filter(
-      (x) =>
-        x.name.toLowerCase().includes(qq) ||
-        x.phone.toLowerCase().includes(qq) ||
-        x.address.toLowerCase().includes(qq)
+      (x) => {
+        const phone = String(x.phone || "");
+        const phoneDigits = onlyDigits(phone);
+        const qLast4 = qDigits.length >= 4 ? qDigits.slice(-4) : qDigits;
+
+        return (
+          x.name.toLowerCase().includes(qq) ||
+          phone.toLowerCase().includes(qq) ||
+          x.address.toLowerCase().includes(qq) ||
+          (qDigits
+            ? phoneDigits.includes(qDigits) ||
+              (qLast4 ? phoneDigits.endsWith(qLast4) : false)
+            : false)
+        );
+      }
     );
   }, [sales, q, clientsMap, localClientsMap]);
 
