@@ -19,6 +19,7 @@ import {
 
 const { Option } = Select;
 const { Text, Title } = Typography;
+const onlyDigits = (value = "") => String(value).replace(/\D/g, "");
 
 export default function SaleModal({
   open,
@@ -250,6 +251,22 @@ export default function SaleModal({
 
   const formattedTotal = totalAmount?.toLocaleString() || "0";
 
+  const filterCustomerOption = (input, option) => {
+    const query = String(input || "").toLowerCase().trim();
+    const queryDigits = onlyDigits(input);
+    const label = String(option?.label || "").toLowerCase();
+    const labelDigits = onlyDigits(option?.label || "");
+    const last4 = queryDigits.length >= 4 ? queryDigits.slice(-4) : queryDigits;
+
+    return (
+      label.includes(query) ||
+      (queryDigits
+        ? labelDigits.includes(queryDigits) ||
+          (last4 ? labelDigits.endsWith(last4) : false)
+        : false)
+    );
+  };
+
   const handleCustomerChange = (value) => {
     try {
       setSelectedCustomer(value);
@@ -377,6 +394,7 @@ export default function SaleModal({
             showSearch
             placeholder="Mijoz tanlang"
             optionFilterProp="label"
+            filterOption={filterCustomerOption}
             onChange={handleCustomerChange}
             value={selectedCustomer}
             size={isMobile ? "middle" : "large"}

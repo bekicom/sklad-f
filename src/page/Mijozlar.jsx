@@ -221,7 +221,34 @@ export default function Mijozlar() {
 
   // 🔹 To'lov tarixi jadvali
   const PaymentHistoryTable = ({ history = [] }) => {
-    const sortedHistory = [...history].sort(
+    const groupedHistory = history.reduce((acc, item) => {
+      const note =
+        item?.payment_note ||
+        item?.note ||
+        item?.sale_note ||
+        item?.sale_notes ||
+        item?.description ||
+        item?.comment ||
+        item?.izoh ||
+        "Qarz to'lovi";
+      const minuteKey = dayjs(item?.date).format("YYYY-MM-DD HH:mm");
+      const key = `${minuteKey}__${note}`;
+
+      if (!acc.has(key)) {
+        acc.set(key, {
+          ...item,
+          amount: Number(item?.amount) || 0,
+          note,
+        });
+      } else {
+        const existing = acc.get(key);
+        existing.amount += Number(item?.amount) || 0;
+      }
+
+      return acc;
+    }, new Map());
+
+    const sortedHistory = Array.from(groupedHistory.values()).sort(
       (a, b) => new Date(b?.date || 0) - new Date(a?.date || 0)
     );
 
@@ -244,15 +271,7 @@ export default function Mijozlar() {
         title: "Izoh",
         dataIndex: "note",
         key: "note",
-        render: (_, record) =>
-          record?.payment_note ||
-          record?.note ||
-          record?.sale_note ||
-          record?.sale_notes ||
-          record?.description ||
-          record?.comment ||
-          record?.izoh ||
-          "Qarz to'lovi",
+        render: (_, record) => record?.note || "Qarz to'lovi",
       },
     ];
     return (
