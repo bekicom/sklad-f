@@ -24,7 +24,7 @@ export const importApi = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: ["Imports", "Store"],
+      invalidatesTags: ["Imports", "Store", "Clients", { type: "Sales", id: "STATS" }],
     }),
 
     // ✅ Partiya raqamini olish uchun yangi endpoint

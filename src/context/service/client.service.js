@@ -92,7 +92,7 @@ export const clientApi = apiSlice.injectEndpoints({
         method: "POST",
         body: { amount, note, description: note, comment: note },
       }),
-      invalidatesTags: ["Clients", "ClientPayments"],
+      invalidatesTags: ["Clients", "ClientPayments", { type: "Sales", id: "STATS" }],
     }),
 
     // 📌 Qarz qo'shish
@@ -102,7 +102,7 @@ export const clientApi = apiSlice.injectEndpoints({
         method: "POST",
         body: { amount },
       }),
-      invalidatesTags: ["Clients", "ClientPayments"],
+      invalidatesTags: ["Clients", "ClientPayments", { type: "Sales", id: "STATS" }],
     }),
 
     // 📌 🆕 Yetkazib beruvchi import tarixi (history)
