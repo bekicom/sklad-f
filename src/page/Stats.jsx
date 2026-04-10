@@ -16,6 +16,8 @@ import {
   DollarOutlined,
   CreditCardOutlined,
   ExclamationCircleOutlined,
+  RiseOutlined,
+  FallOutlined,
   ShoppingCartOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
@@ -412,6 +414,31 @@ export default function Stats() {
               suffix="so'm"
               valueStyle={{ color: "#fff" }}
               formatter={(v) => Number(v).toLocaleString()}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} lg={12}>
+          <Card
+            style={{
+              background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
+              borderRadius: 10,
+              margin: 5,
+            }}
+          >
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Kechikan qarz</span>}
+              value={Math.abs(stats.total_profit)}
+              prefix={
+                stats.total_profit >= 0 ? (
+                  <RiseOutlined style={{ fontSize: 45, color: "#fff" }} />
+                ) : (
+                  <FallOutlined style={{ fontSize: 45, color: "#fff" }} />
+                )
+              }
+              suffix="so'm"
+              valueStyle={{ color: "#fff" }}
+              formatter={(v) => Math.abs(v).toLocaleString()}
             />
           </Card>
         </Col>
