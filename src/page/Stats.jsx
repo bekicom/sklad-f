@@ -259,7 +259,7 @@ export default function Stats() {
       {/* Statistik kartalar */}
       <Row gutter={12}>
         <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#1890ff", borderRadius: 10, margin: 5 }}>
+          <Card style={{ background: "#1890ff", borderRadius: 10 }}>
             <Statistic
               title={<span style={{ color: "#fff" }}>Jami tushum</span>}
               value={stats.total_revenue}
@@ -273,7 +273,7 @@ export default function Stats() {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#13c2c2", borderRadius: 10, margin: 5 }}>
+          <Card style={{ background: "#13c2c2", borderRadius: 10 }}>
             <Statistic
               title={<span style={{ color: "#fff" }}>Naqdga qilingan savdo </span>}
               value={stats.cash_total}
@@ -288,7 +288,7 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#ff4d4f", borderRadius: 10, margin: 5 }}>
+          <Card style={{ background: "#ff4d4f", borderRadius: 10 }}>
             <Statistic
               title={
                 <span style={{ color: "#fff" }}>Qarzga qilingan savdo</span>
@@ -307,7 +307,7 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#2f54eb", borderRadius: 10, margin: 5 }}>
+          <Card style={{ background: "#2f54eb", borderRadius: 10 }}>
             <Statistic
               title={<span style={{ color: "#fff" }}>Kartaga qilingan savdo </span>}
               value={stats.card_total}
@@ -322,7 +322,7 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#08979c", borderRadius: 10, margin: 5 }}>
+          <Card style={{ background: "#08979c", borderRadius: 10 }}>
             <Statistic
               title={
                 <span style={{ color: "#fff" }}>Ombordagi tavar summasi</span>
@@ -339,7 +339,7 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#d46b08", borderRadius: 10, margin: 5 }}>
+          <Card style={{ background: "#d46b08", borderRadius: 10 }}>
             <Statistic
               title={
                 <span style={{ color: "#fff" }}>
@@ -360,7 +360,7 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#ad6800", borderRadius: 10, margin: 5 }}>
+          <Card style={{ background: "#ad6800", borderRadius: 10 }}>
             <Statistic
               title={
                 <span style={{ color: "#fff" }}>
@@ -379,7 +379,7 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#faad14", borderRadius: 10, margin: 5 }}>
+          <Card style={{ background: "#faad14", borderRadius: 10 }}>
             <Statistic
               title={<span style={{ color: "#fff" }}>Sotuvlar soni</span>}
               value={stats.total_sales_count}
@@ -396,7 +396,6 @@ export default function Stats() {
             style={{
               background: "#cf1322",
               borderRadius: 10,
-              margin: 5,
             }}
           >
             <Statistic
@@ -423,7 +422,6 @@ export default function Stats() {
             style={{
               background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
               borderRadius: 10,
-              margin: 5,
             }}
           >
             <Statistic
