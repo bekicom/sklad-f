@@ -201,7 +201,7 @@ export default function KassaPro() {
             K
           </div>
           <Title level={5} style={{ margin: 0, color: "white" }}>
-            MAZZALI NUTS mchj
+            MAZZALI NUT HOUS
           </Title>
         </div>
 
