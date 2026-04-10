@@ -206,6 +206,7 @@ export const {
   useGetSalesQuery,
   useGetSaleByIdQuery,
   useGetSaleInvoiceQuery,
+  useLazyGetSaleInvoiceQuery,
   useCreateSaleMutation,
   useUpdateSaleMutation,
   useDeleteSaleMutation,

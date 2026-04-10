@@ -19,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import { useReactToPrint } from "react-to-print";
 import { useGetAllStoreItemsQuery } from "../context/service/store.service";
+import { useLazyGetSaleInvoiceQuery } from "../context/service/sales.service";
 import SaleModal from "../components/Salemodal/Salemodal";
 import InvoicePrint from "../components/Faktura/InvoicePrint";
 
@@ -232,6 +233,7 @@ export default function Agentsotuv() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [buyerData, setBuyerData] = useState(null);
   const [saleData, setSaleData] = useState(null);
+  const [fetchSaleInvoice] = useLazyGetSaleInvoiceQuery();
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   // ✅ draft narxlar faqat input uchun (istalgancha o'chirib-yozish mumkin)
@@ -388,11 +390,11 @@ export default function Agentsotuv() {
   );
   const cartItems = useMemo(() => [...cart].reverse(), [cart]);
 
-  const handleSaleSuccess = (buyer, saleResponse) => {
+  const handleSaleSuccess = async (buyer, saleResponse) => {
     setBuyerData(buyer);
     const backendSale = saleResponse?.sale || saleResponse;
 
-    const generatedSaleData = {
+    let generatedSaleData = {
       _id: backendSale?._id,
       customer: buyer,
       createdAt: backendSale?.createdAt || new Date().toISOString(),
@@ -416,6 +418,48 @@ export default function Agentsotuv() {
       checkNumber:
         backendSale?._id?.slice(-6) || Date.now().toString().slice(-6),
     };
+
+    if (backendSale?._id) {
+      try {
+        const invoiceRes = await fetchSaleInvoice(backendSale._id).unwrap();
+        const inv = invoiceRes?.invoice;
+        if (inv) {
+          generatedSaleData = {
+            _id: backendSale._id,
+            createdAt: inv.date || generatedSaleData.createdAt,
+            total_amount:
+              inv?.payment?.total_amount ?? generatedSaleData.total_amount,
+            paid_amount:
+              inv?.payment?.paid_amount ?? generatedSaleData.paid_amount,
+            remaining_debt:
+              inv?.payment?.remaining_debt ??
+              (generatedSaleData.total_amount - generatedSaleData.paid_amount),
+            payment_method:
+              inv?.payment?.payment_method ?? generatedSaleData.payment_method,
+            payment: inv?.payment || generatedSaleData.payment,
+            check_number: inv?.check_number || generatedSaleData.checkNumber,
+            invoice_number:
+              inv?.invoice_number || generatedSaleData.invoice_number,
+            customer: inv?.customer || generatedSaleData.customer,
+            customer_id: inv?.customer || generatedSaleData.customer_id,
+            products: inv?.products || generatedSaleData.products,
+            shop_info: inv?.shop || generatedSaleData.shop_info,
+            ...(inv?.agent_id
+              ? {
+                  agent_id: inv.agent_id,
+                  agent_info: inv.agent_info,
+                  agent_name: inv.agent_name,
+                  agent_phone: inv.agent_phone,
+                  sale_type: inv.sale_type,
+                  seller: inv.seller || "Agent",
+                }
+              : {}),
+          };
+        }
+      } catch (e) {
+        console.warn("Invoice fetch failed, fallback to local sale data", e);
+      }
+    }
 
     setSaleData(generatedSaleData);
     message.success("Agent sotuv amalga oshirildi");
