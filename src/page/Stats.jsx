@@ -16,14 +16,13 @@ import {
   DollarOutlined,
   CreditCardOutlined,
   ExclamationCircleOutlined,
-  RiseOutlined,
-  FallOutlined,
   ShoppingCartOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
 import { useGetSalesStatsQuery } from "../context/service/sales.service";
 import { useGetClientsQuery } from "../context/service/client.service";
 import { useGetAllStoreItemsQuery } from "../context/service/store.service";
+import { useGetAllCustomersQuery } from "../context/service/customer.service";
 
 const { RangePicker } = DatePicker;
 
@@ -62,6 +61,7 @@ export default function Stats() {
   );
   const { data: clients = [] } = useGetClientsQuery();
   const { data: storeItems = [] } = useGetAllStoreItemsQuery();
+  const { data: customers = [] } = useGetAllCustomersQuery();
 
   const stats = data?.stats || {
     total_sales_count: 0,
@@ -97,6 +97,14 @@ export default function Stats() {
       return sum + total;
     }, 0);
   }, [storeItems]);
+
+  // ✅ Vaqt filtridan mustaqil: do'konchilarning umumiy joriy qarzi
+  const totalCustomerDebt = useMemo(() => {
+    return (customers || []).reduce(
+      (sum, customer) => sum + (Number(customer?.totalDebt) || 0),
+      0
+    );
+  }, [customers]);
 
   // 📊 Mahsulotlar jadvali
   const productData = useMemo(() => {
@@ -384,24 +392,26 @@ export default function Stats() {
         <Col xs={24} sm={12} md={8} lg={12}>
           <Card
             style={{
-              background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
+              background: "#cf1322",
               borderRadius: 10,
               margin: 5,
             }}
           >
             <Statistic
-              title={<span style={{ color: "#fff" }}>Kechikan qarz</span>}
-              value={Math.abs(stats.total_profit)}
+              title={
+                <span style={{ color: "#fff" }}>
+                  Do'konchilarning mendan jami qarzi
+                </span>
+              }
+              value={totalCustomerDebt}
               prefix={
-                stats.total_profit >= 0 ? (
-                  <RiseOutlined style={{ fontSize: 45, color: "#fff" }} />
-                ) : (
-                  <FallOutlined style={{ fontSize: 45, color: "#fff" }} />
-                )
+                <ExclamationCircleOutlined
+                  style={{ fontSize: 45, color: "#fff" }}
+                />
               }
               suffix="so'm"
               valueStyle={{ color: "#fff" }}
-              formatter={(v) => Math.abs(v).toLocaleString()}
+              formatter={(v) => Number(v).toLocaleString()}
             />
           </Card>
         </Col>
