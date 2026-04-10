@@ -378,7 +378,7 @@ export default function Stats() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={12}>
+        <Col xs={24} sm={12} md={8} lg={8}>
           <Card style={{ background: "#faad14", borderRadius: 10, margin: 5 }}>
             <Statistic
               title={<span style={{ color: "#fff" }}>Sotuvlar soni</span>}
@@ -391,7 +391,7 @@ export default function Stats() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={12}>
+        <Col xs={24} sm={12} md={8} lg={8}>
           <Card
             style={{
               background: "#cf1322",
@@ -418,7 +418,7 @@ export default function Stats() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={12}>
+        <Col xs={24} sm={12} md={8} lg={8}>
           <Card
             style={{
               background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
