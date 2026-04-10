@@ -44,7 +44,7 @@ export default function Clients() {
   const [isImportsModalOpen, setIsImportsModalOpen] = useState(false);
 
   const [selectedClient, setSelectedClient] = useState(null);
-  const [amount, setAmount] = useState(0);
+  const [amount, setAmount] = useState(null);
   const [payNote, setPayNote] = useState("");
   const [addAmount, setAddAmount] = useState(0);
 
@@ -98,7 +98,7 @@ export default function Clients() {
   // Modallar ochish
   const openPayModal = (client) => {
     setSelectedClient(client);
-    setAmount(client?.totalDebt || 0);
+    setAmount(null);
     setPayNote("");
     setIsPayModalOpen(true);
   };
@@ -122,7 +122,7 @@ export default function Clients() {
 
   const closePayModal = () => {
     setIsPayModalOpen(false);
-    setAmount(0);
+    setAmount(null);
     setPayNote("");
     setSelectedClient(null);
   };
@@ -137,6 +137,7 @@ export default function Clients() {
     typeof amount === "number" &&
     amount > 0 &&
     amount <= (selectedClient.totalDebt || 0);
+  const payNoteValid = !!payNote?.trim();
 
   /*************  ✨ Windsurf Command ⭐  *************/
   /**
@@ -152,6 +153,10 @@ export default function Clients() {
   const handlePay = async () => {
     if (!amountValid) {
       message.error("To'lov summasi noto'g'ri.");
+      return;
+    }
+    if (!payNoteValid) {
+      message.error("Izoh kiriting.");
       return;
     }
     try {
@@ -334,7 +339,7 @@ export default function Clients() {
         okText="To'lash"
         onCancel={closePayModal}
         cancelText="Bekor qilish"
-        okButtonProps={{ disabled: !amountValid }}
+        okButtonProps={{ disabled: !amountValid || !payNoteValid }}
         width={600}
         height={700}
       >
@@ -346,7 +351,7 @@ export default function Clients() {
         </p>
         <InputNumber
           value={amount}
-          onChange={(val) => setAmount(typeof val === "number" ? val : 0)}
+          onChange={(val) => setAmount(typeof val === "number" ? val : null)}
           style={{ width: "100%", height: 40, fontSize: 23 }}
           placeholder="To'lov summasini kiriting"
           min={1}

@@ -24,7 +24,6 @@ import {
 import { useGetSalesStatsQuery } from "../context/service/sales.service";
 import { useGetClientsQuery } from "../context/service/client.service";
 import { useGetAllStoreItemsQuery } from "../context/service/store.service";
-import { useGetAllCustomersQuery } from "../context/service/customer.service";
 
 const { RangePicker } = DatePicker;
 
@@ -63,7 +62,6 @@ export default function Stats() {
   );
   const { data: clients = [] } = useGetClientsQuery();
   const { data: storeItems = [] } = useGetAllStoreItemsQuery();
-  const { data: customers = [] } = useGetAllCustomersQuery();
 
   const stats = data?.stats || {
     total_sales_count: 0,
@@ -99,13 +97,6 @@ export default function Stats() {
       return sum + total;
     }, 0);
   }, [storeItems]);
-
-  const unpaidDebtTotal = useMemo(() => {
-    return (customers || []).reduce(
-      (sum, customer) => sum + (Number(customer?.totalDebt) || 0),
-      0
-    );
-  }, [customers]);
 
   // 📊 Mahsulotlar jadvali
   const productData = useMemo(() => {
@@ -223,7 +214,7 @@ export default function Stats() {
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {Object.values(stats.product_details || {}).some(
-        (p) => (p?.cost ?? 0) === 0
+        (p) => (p?.cost ?? 0) === 0,
       ) && (
         <Alert
           message="Diqqat! Ba'zi mahsulotlarda xarajatlar kiritilmagan"
@@ -271,53 +262,10 @@ export default function Stats() {
             />
           </Card>
         </Col>
-
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card
-            style={{
-              background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
-              borderRadius: 10,
-              margin: 5,
-            }}
-          >
-            <Statistic
-              title={
-                <span style={{ color: "#fff" }}>
-                  {stats.total_profit >= 0 ? "Keshbek" : "Zarar"}
-                </span>
-              }
-              value={Math.abs(stats.total_profit)}
-              prefix={
-                stats.total_profit >= 0 ? (
-                  <RiseOutlined style={{ fontSize: 45, color: "#fff" }} />
-                ) : (
-                  <FallOutlined style={{ fontSize: 45, color: "#fff" }} />
-                )
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Math.abs(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#faad14", borderRadius: 10, margin: 5 }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Sotuvlar soni</span>}
-              value={stats.total_sales_count}
-              prefix={
-                <ShoppingCartOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              valueStyle={{ color: "#fff" }}
-            />
-          </Card>
-        </Col>
-
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card style={{ background: "#13c2c2", borderRadius: 10, margin: 5 }}>
             <Statistic
-              title={<span style={{ color: "#fff" }}>Naqd tushum</span>}
+              title={<span style={{ color: "#fff" }}>Naqdga qilingan savdo </span>}
               value={stats.cash_total}
               prefix={
                 <WalletOutlined style={{ fontSize: 45, color: "#fff" }} />
@@ -330,24 +278,11 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#2f54eb", borderRadius: 10, margin: 5 }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Karta tushum</span>}
-              value={stats.card_total}
-              prefix={
-                <CreditCardOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={6}>
           <Card style={{ background: "#ff4d4f", borderRadius: 10, margin: 5 }}>
             <Statistic
-              title={<span style={{ color: "#fff" }}>Qarzga qilingan savdo</span>}
+              title={
+                <span style={{ color: "#fff" }}>Qarzga qilingan savdo</span>
+              }
               value={stats.debt_total}
               prefix={
                 <ExclamationCircleOutlined
@@ -362,9 +297,26 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={6}>
+          <Card style={{ background: "#2f54eb", borderRadius: 10, margin: 5 }}>
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Kartaga qilingan savdo </span>}
+              value={stats.card_total}
+              prefix={
+                <CreditCardOutlined style={{ fontSize: 45, color: "#fff" }} />
+              }
+              suffix="so'm"
+              valueStyle={{ color: "#fff" }}
+              formatter={(v) => Number(v).toLocaleString()}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} lg={8}>
           <Card style={{ background: "#08979c", borderRadius: 10, margin: 5 }}>
             <Statistic
-              title={<span style={{ color: "#fff" }}>Ombordagi tavar summasi</span>}
+              title={
+                <span style={{ color: "#fff" }}>Ombordagi tavar summasi</span>
+              }
               value={storeTotalAmount}
               prefix={
                 <DollarOutlined style={{ fontSize: 45, color: "#fff" }} />
@@ -376,11 +328,13 @@ export default function Stats() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
+        <Col xs={24} sm={12} md={8} lg={8}>
           <Card style={{ background: "#d46b08", borderRadius: 10, margin: 5 }}>
             <Statistic
               title={
-                <span style={{ color: "#fff" }}>Yetkazib beruvchilardan qarz</span>
+                <span style={{ color: "#fff" }}>
+                  Yetkazib beruvchilardan qarz
+                </span>
               }
               value={supplierDebtTotal}
               prefix={
@@ -395,7 +349,7 @@ export default function Stats() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
+        <Col xs={24} sm={12} md={8} lg={8}>
           <Card style={{ background: "#ad6800", borderRadius: 10, margin: 5 }}>
             <Statistic
               title={
@@ -414,7 +368,7 @@ export default function Stats() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
+        <Col xs={24} sm={12} md={8} lg={12}>
           <Card style={{ background: "#faad14", borderRadius: 10, margin: 5 }}>
             <Statistic
               title={<span style={{ color: "#fff" }}>Sotuvlar soni</span>}
@@ -427,24 +381,7 @@ export default function Stats() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#cf1322", borderRadius: 10, margin: 5 }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>To‘lanmagan qarz</span>}
-              value={unpaidDebtTotal}
-              prefix={
-                <ExclamationCircleOutlined
-                  style={{ fontSize: 45, color: "#fff" }}
-                />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={6}>
+        <Col xs={24} sm={12} md={8} lg={12}>
           <Card
             style={{
               background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
@@ -453,11 +390,7 @@ export default function Stats() {
             }}
           >
             <Statistic
-              title={
-                <span style={{ color: "#fff" }}>
-                  {stats.total_profit >= 0 ? "Foyda" : "Zarar"}
-                </span>
-              }
+              title={<span style={{ color: "#fff" }}>Kechikan qarz</span>}
               value={Math.abs(stats.total_profit)}
               prefix={
                 stats.total_profit >= 0 ? (
