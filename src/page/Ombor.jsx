@@ -63,9 +63,10 @@ export default function Ombor() {
   };
 
   // Yetkazib beruvchilar bo'yicha guruhlash (local copy'dan)
-  const { groupedSuppliers, totalBalance } = useMemo(() => {
+  const { groupedSuppliers, totalBalance, totalSellAmount, totalProfit } = useMemo(() => {
     const supplierMap = {};
     let totalBalanceValue = 0;
+    let totalSellAmountValue = 0;
 
     localStoreItems.forEach((item) => {
       const supplierKey = item.supplier_id?._id;
@@ -86,6 +87,10 @@ export default function Ombor() {
         item.currency === "USD"
           ? quantity * unitPrice * usd_rate
           : quantity * unitPrice;
+      const sellInUZS =
+        item.currency === "USD"
+          ? quantity * (item.sell_price || 0) * usd_rate
+          : quantity * (item.sell_price || 0);
       const paidInUZS =
         item.currency === "USD"
           ? (item.paid_amount || 0) * usd_rate
@@ -96,6 +101,7 @@ export default function Ombor() {
           : item.remaining_debt || 0;
 
       totalBalanceValue += priceInUZS;
+      totalSellAmountValue += sellInUZS;
 
       supplierMap[supplierKey].total_price += priceInUZS;
       supplierMap[supplierKey].total_paid += paidInUZS;
@@ -139,6 +145,8 @@ export default function Ombor() {
         })),
       })),
       totalBalance: Number(totalBalanceValue.toFixed(2)),
+      totalSellAmount: Number(totalSellAmountValue.toFixed(2)),
+      totalProfit: Number((totalSellAmountValue - totalBalanceValue).toFixed(2)),
     };
   }, [localStoreItems]);
 
@@ -253,6 +261,28 @@ export default function Ombor() {
               value={totalBalance}
               precision={2}
               valueStyle={{ color: "#3f8600" }}
+              formatter={(value) => value.toLocaleString()}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="Jami sotish narxi (UZS)"
+              value={totalSellAmount}
+              precision={2}
+              valueStyle={{ color: "#1677ff" }}
+              formatter={(value) => value.toLocaleString()}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="Keshbek (UZS)"
+              value={totalProfit}
+              precision={2}
+              valueStyle={{ color: totalProfit >= 0 ? "#52c41a" : "#cf1322" }}
               formatter={(value) => value.toLocaleString()}
             />
           </Card>
