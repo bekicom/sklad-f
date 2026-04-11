@@ -139,7 +139,7 @@ export default function Stats() {
       render: (v) => (v ?? 0).toLocaleString() + " so'm",
     },
     {
-      title: "Foyda",
+      title: "Kechikan qarz",
       dataIndex: "profit",
       key: "profit",
       align: "right",
@@ -150,7 +150,7 @@ export default function Stats() {
       ),
     },
     {
-      title: "Foyda %",
+      title: "Kechikan qarz %",
       dataIndex: "profit_percentage",
       key: "profit_percentage",
       align: "right",
@@ -322,82 +322,7 @@ export default function Stats() {
         </Col>
 
         <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#08979c", borderRadius: 10 }}>
-            <Statistic
-              title={
-                <span style={{ color: "#fff" }}>Ombordagi tavar summasi</span>
-              }
-              value={storeTotalAmount}
-              prefix={
-                <DollarOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#d46b08", borderRadius: 10 }}>
-            <Statistic
-              title={
-                <span style={{ color: "#fff" }}>
-                  Yetkazib beruvchilardan qarz
-                </span>
-              }
-              value={supplierDebtTotal}
-              prefix={
-                <ExclamationCircleOutlined
-                  style={{ fontSize: 45, color: "#fff" }}
-                />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#ad6800", borderRadius: 10 }}>
-            <Statistic
-              title={
-                <span style={{ color: "#fff" }}>
-                  Yetkazib beruvchiga to‘langan pullar
-                </span>
-              }
-              value={stats.supplier_payments_total}
-              prefix={
-                <DollarOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#faad14", borderRadius: 10 }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Sotuvlar soni</span>}
-              value={stats.total_sales_count}
-              prefix={
-                <ShoppingCartOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              valueStyle={{ color: "#fff" }}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card
-            style={{
-              background: "#cf1322",
-              borderRadius: 10,
-            }}
-          >
+          <Card style={{ background: "#cf1322", borderRadius: 10 }}>
             <Statistic
               title={
                 <span style={{ color: "#fff" }}>
@@ -413,6 +338,75 @@ export default function Stats() {
               suffix="so'm"
               valueStyle={{ color: "#fff" }}
               formatter={(v) => Number(v).toLocaleString()}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} lg={8}>
+          <Card style={{ background: "#08979c", borderRadius: 10 }}>
+            <Statistic
+              title={
+                <span style={{ color: "#fff" }}>Ombordagi tovar jami summasi</span>
+              }
+              value={storeTotalAmount}
+              prefix={
+                <DollarOutlined style={{ fontSize: 45, color: "#fff" }} />
+              }
+              suffix="so'm"
+              valueStyle={{ color: "#fff" }}
+              formatter={(v) => Number(v).toLocaleString()}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} lg={8}>
+          <Card style={{ background: "#ad6800", borderRadius: 10 }}>
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Tovar beruvchilardan jami qarzim</span>}
+              value={supplierDebtTotal}
+              prefix={
+                <ExclamationCircleOutlined
+                  style={{ fontSize: 45, color: "#fff" }}
+                />
+              }
+              suffix="so'm"
+              valueStyle={{ color: "#fff" }}
+              formatter={(v) => Number(v).toLocaleString()}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} lg={8}>
+          <Card style={{ background: "#d46b08", borderRadius: 10 }}>
+            <Statistic
+              title={
+                <span style={{ color: "#fff" }}>Tovar beruvchiga tolangan pullar</span>
+              }
+              value={stats.supplier_payments_total}
+              prefix={
+                <DollarOutlined style={{ fontSize: 45, color: "#fff" }} />
+              }
+              suffix="so'm"
+              valueStyle={{ color: "#fff" }}
+              formatter={(v) => Number(v).toLocaleString()}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} lg={8}>
+          <Card
+            style={{
+              background: "#faad14",
+              borderRadius: 10,
+            }}
+          >
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Sotuvlar soni</span>}
+              value={stats.total_sales_count}
+              prefix={
+                <ShoppingCartOutlined style={{ fontSize: 45, color: "#fff" }} />
+              }
+              valueStyle={{ color: "#fff" }}
             />
           </Card>
         </Col>
