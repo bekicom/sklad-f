@@ -15,6 +15,7 @@ import dayjs from "dayjs";
 import { DeleteOutlined } from "@ant-design/icons";
 import {
   useGetCustomerSalesQuery,
+  useUpdateCustomerMutation,
   useDeleteCustomerMutation, // ✅ YANGI import
 } from "../context/service/customer.service";
 import { useGetClientsQuery } from "../context/service/client.service";
@@ -49,9 +50,12 @@ export default function Mijozlar() {
     customer: null,
     name: "",
     phone: "",
+    address: "",
   });
 
   const [payCustomerDebt, { isLoading: paying }] = usePayCustomerDebtMutation();
+  const [updateCustomer, { isLoading: updatingCustomer }] =
+    useUpdateCustomerMutation();
   const [deleteCustomer] = useDeleteCustomerMutation(); // ✅ deleteClient → deleteCustomer
 
   // local edits persisted to localStorage (so they survive refresh)
@@ -416,11 +420,11 @@ export default function Mijozlar() {
       title: "Mijoz",
       dataIndex: "name",
       key: "name",
-      render: (v, r) => (
-        <Space direction="vertical" size={0}>
-          <Text strong>{v}</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {r.phone} · {r.address}
+        render: (v, r) => (
+          <Space direction="vertical" size={0}>
+            <Text strong>{v}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {r.phone} · {r.address}
           </Text>
         </Space>
       ),
@@ -457,20 +461,21 @@ export default function Mijozlar() {
       title: "Tahrirlash",
       key: "edit",
       width: 120,
-      render: (_, record) => (
-        <Button
-          size="small"
-          onClick={() =>
-            setEditModal({
-              open: true,
-              customer: record,
-              name: record.name || "",
-              phone: record.phone || "",
-            })
-          }
-        >
-          Tahrirlash
-        </Button>
+        render: (_, record) => (
+          <Button
+            size="small"
+            onClick={() =>
+              setEditModal({
+                open: true,
+                customer: record,
+                name: record.name || "",
+                phone: record.phone || "",
+                address: record.address || "",
+              })
+            }
+          >
+            Tahrirlash
+          </Button>
       ),
     },
     {
@@ -638,7 +643,7 @@ export default function Mijozlar() {
 
   // 🔹 Mijozni tahrirlash
   const handleEditSave = async () => {
-    const { customer, name, phone } = editModal;
+    const { customer, name, phone, address } = editModal;
     if (!customer) return;
     if (!name?.trim() || !phone?.trim()) {
       message.error("Iltimos, mijoz nomi va telefonni kiriting");
@@ -649,51 +654,49 @@ export default function Mijozlar() {
     setCustomers((prev) =>
       prev.map((c) =>
         c._id === customer._id
-          ? { ...c, name: name.trim(), phone: phone.trim() }
+          ? {
+              ...c,
+              name: name.trim(),
+              phone: phone.trim(),
+              address: address?.trim() || "",
+            }
           : c
       )
     );
 
-    setEditModal({ open: false, customer: null, name: "", phone: "" });
-
-    // resolve real client id: try entry._id, then lookup by phone in clientsMap
-    const resolveRealId = (entry) => {
-      if (!entry) return null;
-      // If entry._id exists, try to map it to a canonical client record
-      if (entry._id) {
-        const found =
-          clientsMap.get(entry._id) || clientsMap.get(entry.phone) || null;
-        if (found && (found._id || found.id)) return found._id || found.id;
-        // if entry._id itself looks like a DB id, keep it as last resort
-        return entry._id;
-      }
-      // fallback: try find in clientsMap by phone
-      const byPhone = clientsMap.get(entry.phone) || null;
-      return byPhone?._id || byPhone?.id || null;
-    };
-
-    const realId = resolveRealId(customer) || customer._id || customer.phone;
+    const realId = customer._id;
     if (!realId) {
       message.error("Mijozning haqiqiy ID sini topib bo'lmadi");
       setCustomers(filteredCustomers);
       return;
     }
 
-    // Save locally only: persist the edited client to localStorage and update UI
     try {
       setSavingLocal(true);
       const key = String(realId || phone || Date.now());
+      const trimmedName = name.trim();
+      const trimmedPhone = phone.trim();
+      const trimmedAddress = address?.trim() || "";
+
+      await updateCustomer({
+        id: realId,
+        name: trimmedName,
+        phone: trimmedPhone,
+        address: trimmedAddress,
+      }).unwrap();
+
       const data = {
         _id: realId,
-        name: name.trim(),
-        phone: phone.trim(),
-        address: customer.address || "",
+        name: trimmedName,
+        phone: trimmedPhone,
+        address: trimmedAddress,
       };
       saveLocalClient(key, data);
       // update customers shown in UI
       setCustomers((prev) =>
         prev.map((c) =>
-          String(c._id) === String(realId) || String(c.phone) === String(phone)
+          String(c._id) === String(realId) ||
+          String(c.phone) === String(trimmedPhone)
             ? {
                 ...c,
                 name: data.name,
@@ -704,6 +707,7 @@ export default function Mijozlar() {
         )
       );
       setFreezeRefreshUntil(Date.now() + 5000);
+      setEditModal({ open: false, customer: null, name: "", phone: "", address: "" });
 
       // trigger refetch for any Customers/Clients queries so other screens refresh
       try {
@@ -711,7 +715,12 @@ export default function Mijozlar() {
       } catch (e) {
         console.warn("Failed to invalidate RTK Query tags", e);
       }
-      message.success("Mijoz localga saqlandi");
+      refetchSales();
+      refetchClients();
+      message.success("Mijoz yangilandi");
+    } catch (err) {
+      message.error(err?.data?.message || "Mijozni saqlashda xatolik");
+      setCustomers(filteredCustomers);
     } finally {
       setSavingLocal(false);
     }
@@ -811,10 +820,16 @@ export default function Mijozlar() {
         open={editModal.open}
         title={`✏️ Mijozni tahrirlash — ${editModal.customer?.name || ""}`}
         onCancel={() =>
-          setEditModal({ open: false, customer: null, name: "", phone: "" })
+          setEditModal({
+            open: false,
+            customer: null,
+            name: "",
+            phone: "",
+            address: "",
+          })
         }
         onOk={handleEditSave}
-        confirmLoading={savingLocal}
+        confirmLoading={savingLocal || updatingCustomer}
         okText="Saqlash"
         cancelText="Bekor qilish"
       >
@@ -832,6 +847,13 @@ export default function Mijozlar() {
               setEditModal((s) => ({ ...s, phone: e.target.value }))
             }
             placeholder="Telefon raqam"
+          />
+          <Input
+            value={editModal.address}
+            onChange={(e) =>
+              setEditModal((s) => ({ ...s, address: e.target.value }))
+            }
+            placeholder="Mijoz manzili"
           />
         </div>
       </Modal>
