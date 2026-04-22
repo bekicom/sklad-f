@@ -15,10 +15,10 @@ import dayjs from "dayjs";
 import { DeleteOutlined } from "@ant-design/icons";
 import {
   useGetCustomerSalesQuery,
-  useUpdateCustomerMutation,
   useDeleteCustomerMutation, // ✅ YANGI import
 } from "../context/service/customer.service";
 import { useGetClientsQuery } from "../context/service/client.service";
+import { useUpdateClientMutation } from "../context/service/client.service";
 import { useDispatch } from "react-redux";
 import { apiSlice } from "../context/service/api.service";
 import { usePayCustomerDebtMutation } from "../context/service/debtor.service";
@@ -54,8 +54,8 @@ export default function Mijozlar() {
   });
 
   const [payCustomerDebt, { isLoading: paying }] = usePayCustomerDebtMutation();
-  const [updateCustomer, { isLoading: updatingCustomer }] =
-    useUpdateCustomerMutation();
+  const [updateClient, { isLoading: updatingCustomer }] =
+    useUpdateClientMutation();
   const [deleteCustomer] = useDeleteCustomerMutation(); // ✅ deleteClient → deleteCustomer
 
   // local edits persisted to localStorage (so they survive refresh)
@@ -678,7 +678,7 @@ export default function Mijozlar() {
       const trimmedPhone = phone.trim();
       const trimmedAddress = address?.trim() || "";
 
-      await updateCustomer({
+      await updateClient({
         id: realId,
         name: trimmedName,
         phone: trimmedPhone,
