@@ -8,7 +8,6 @@ import Sale from "./page/Sale.jsx";
 import Mijozlar from "./page/Mijozlar.jsx";
 import Stats from "./page/Stats.jsx";
 import Expense from "./page/Expense.jsx";
-import heroBg from "./assets/mazzali-bg.jpg";
 import Agent from "./page/Agent.jsx";
 import Agentsotuv from "./page/Agentsotuv.jsx";
 import AgentSalesHistory from "./page/AgentSalesHistory.jsx";
@@ -34,31 +33,34 @@ export default function App() {
       >
         <Route
           index
-          element={
-            <div
-              style={{
-                height: "87vh",
-                borderRadius: 16,
-                overflow: "hidden",
-                background: "#f5f6f8",
-                boxShadow: "0 16px 40px rgba(0, 0, 0, 0.18)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <img
-                src={heroBg}
-                alt="Mazzali Nuts"
+        element={
+          <div
+            style={{
+              minHeight: "87vh",
+              borderRadius: 16,
+              overflow: "hidden",
+              background: "#f5f6f8",
+              boxShadow: "0 16px 40px rgba(0, 0, 0, 0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 12,
+            }}
+          >
+            <img
+              src="/zaxidi-hero.svg"
+              alt="ZAXIDI"
                 style={{
                   width: "100%",
                   height: "100%",
+                  maxWidth: 900,
+                  maxHeight: "100%",
                   objectFit: "contain",
                   objectPosition: "center",
                 }}
               />
-            </div>
-          }
+          </div>
+        }
         />
 
         <Route path="ombor" element={<Ombor />} />

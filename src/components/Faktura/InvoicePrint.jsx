@@ -281,12 +281,34 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
               }}
               colSpan="4"
             >
-              <div style={{ marginBottom: "8px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                }}
+              >
                 <img
                   src="/zaxidi-logo.svg"
                   alt="ZAXIDI"
-                  style={{ height: "42px", width: "auto" }}
+                  style={{
+                    height: "58px",
+                    width: "auto",
+                    display: "block",
+                    objectFit: "contain",
+                  }}
                 />
+                <div
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: "bold",
+                    lineHeight: 1.1,
+                  }}
+                >
+                  ZAXIDI
+                </div>
               </div>
               ZAXIDI - SOTUV FAKTURASI
             </td>

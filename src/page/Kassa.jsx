@@ -86,16 +86,18 @@ export default function KassaPro() {
         >
           ZAXIDI
         </span>
-        <span
-          style={{
-            color: "rgba(255,255,255,0.82)",
-            fontSize: compact ? 10 : 12,
-            lineHeight: 1.1,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Naturally Healthy Snacks
-        </span>
+        {!compact && (
+          <span
+            style={{
+              color: "rgba(255,255,255,0.82)",
+              fontSize: 12,
+              lineHeight: 1.1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Naturally Healthy Snacks
+          </span>
+        )}
       </div>
     </div>
   );
@@ -245,15 +247,23 @@ export default function KassaPro() {
       >
         {isMobile ? (
           <>
-            <div style={{ width: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                width: "100%",
+                minWidth: 0,
+              }}
+            >
               <Button
                 type="text"
                 icon={<MenuOutlined style={{ color: "white", fontSize: 20 }} />}
                 onClick={() => setOpen(true)}
                 style={{
-                  width: 42,
-                  height: 42,
-                  minWidth: 42,
+                  width: 38,
+                  height: 38,
+                  minWidth: 38,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -261,9 +271,40 @@ export default function KassaPro() {
                   flex: "0 0 auto",
                 }}
               />
-              <div style={{ marginTop: 10 }}>
+              <div style={{ minWidth: 0, flex: "1 1 auto" }}>
                 <BrandMark compact />
               </div>
+              <Space
+                align="center"
+                size={6}
+                style={{ flex: "0 0 auto", marginLeft: "auto" }}
+              >
+                <Button
+                  type="text"
+                  icon={<ReloadOutlined style={{ color: "white" }} />}
+                  onClick={() => window.location.reload()}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    minWidth: 38,
+                    color: "white",
+                    background: "rgba(255,255,255,0.18)",
+                    borderColor: "rgba(255,255,255,0.25)",
+                  }}
+                />
+                <Button
+                  type="primary"
+                  danger
+                  icon={<LogoutOutlined />}
+                  onClick={handleLogout}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    minWidth: 38,
+                    paddingInline: 0,
+                  }}
+                />
+              </Space>
             </div>
             <Space
               wrap
@@ -271,6 +312,7 @@ export default function KassaPro() {
                 justifyContent: "flex-end",
                 width: "100%",
                 gap: 8,
+                display: "none",
               }}
             >
               <Button
