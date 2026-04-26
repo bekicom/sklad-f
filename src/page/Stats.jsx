@@ -32,6 +32,7 @@ const { RangePicker } = DatePicker;
 export default function Stats() {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const money = (v) => Number(v || 0).toLocaleString();
 
   // 🔧 Granulyatsiya: "day" | "month"
   const [granularity, setGranularity] = useState("day");
@@ -125,6 +126,72 @@ export default function Stats() {
       })
     );
   }, [stats.product_details]);
+
+  const summaryCards = [
+    {
+      title: "Jami tushum",
+      value: stats.total_revenue,
+      background: "#1890ff",
+      icon: DollarOutlined,
+    },
+    {
+      title: "Naqdga qilingan savdo",
+      value: stats.cash_total,
+      background: "#13c2c2",
+      icon: WalletOutlined,
+    },
+    {
+      title: "Qarzga qilingan savdo",
+      value: stats.debt_total,
+      background: "#ff4d4f",
+      icon: ExclamationCircleOutlined,
+    },
+    {
+      title: "Kartaga qilingan savdo",
+      value: stats.card_total,
+      background: "#2f54eb",
+      icon: CreditCardOutlined,
+    },
+    {
+      title: "Do'konchilarning mendan jami qarzi",
+      value: totalCustomerDebt,
+      background: "#cf1322",
+      icon: ExclamationCircleOutlined,
+    },
+    {
+      title: "Ombordagi tovar jami summasi",
+      value: storeTotalAmount,
+      background: "#08979c",
+      icon: DollarOutlined,
+    },
+    {
+      title: "Tovar beruvchilardan jami qarzim",
+      value: supplierDebtTotal,
+      background: "#ad6800",
+      icon: ExclamationCircleOutlined,
+    },
+    {
+      title: "Tovar beruvchiga to'langan pullar",
+      value: stats.supplier_payments_total,
+      background: "#d46b08",
+      icon: DollarOutlined,
+    },
+    {
+      title: "Sotuvlar soni",
+      value: stats.total_sales_count,
+      background: "#faad14",
+      icon: ShoppingCartOutlined,
+      suffix: "",
+    },
+    {
+      title: "Kechikkan foyda",
+      value: Math.abs(stats.total_profit),
+      background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
+      icon: stats.total_profit >= 0 ? RiseOutlined : FallOutlined,
+      suffix: "so'm",
+      formatter: (v) => Math.abs(v).toLocaleString(),
+    },
+  ];
 
   const productCols = [
     { title: "Mahsulot", dataIndex: "name", key: "name" },
@@ -229,10 +296,11 @@ export default function Stats() {
     <div
       style={{
         display: "grid",
-        gap: 12,
+        gap: isMobile ? 10 : 12,
         maxWidth: 1440,
         margin: "0 auto",
         width: "100%",
+        paddingBottom: isMobile ? 18 : 0,
       }}
     >
       {Object.values(stats.product_details || {}).some(
@@ -248,14 +316,22 @@ export default function Stats() {
       )}
 
       {/* Filtrlar */}
-      <Space size={12} wrap style={{ width: "100%" }}>
+      <Space
+        size={12}
+        wrap
+        style={{
+          width: "100%",
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+        }}
+      >
         <RangePicker
           value={normalizedRange}
           onChange={handleRangeChange}
           allowClear={false}
           disabled={isFetching}
           presets={presets}
-          style={{ width: isMobile ? "100%" : 280 }}
+          style={{ width: "100%" }}
         />
         <Select
           value={granularity}
@@ -270,195 +346,158 @@ export default function Stats() {
       </Space>
 
       {/* Statistik kartalar */}
-      <Row gutter={[12, 12]}>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#1890ff", borderRadius: 10 }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Jami tushum</span>}
-              value={stats.total_revenue}
-              prefix={
-                <DollarOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#13c2c2", borderRadius: 10 }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Naqdga qilingan savdo </span>}
-              value={stats.cash_total}
-              prefix={
-                <WalletOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#ff4d4f", borderRadius: 10 }}>
-            <Statistic
-              title={
-                <span style={{ color: "#fff" }}>Qarzga qilingan savdo</span>
-              }
-              value={stats.debt_total}
-              prefix={
-                <ExclamationCircleOutlined
-                  style={{ fontSize: 45, color: "#fff" }}
-                />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ background: "#2f54eb", borderRadius: 10 }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Kartaga qilingan savdo </span>}
-              value={stats.card_total}
-              prefix={
-                <CreditCardOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#cf1322", borderRadius: 10 }}>
-            <Statistic
-              title={
-                <span style={{ color: "#fff" }}>
-                  Do'konchilarning mendan jami qarzi
-                </span>
-              }
-              value={totalCustomerDebt}
-              prefix={
-                <ExclamationCircleOutlined
-                  style={{ fontSize: 45, color: "#fff" }}
-                />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#08979c", borderRadius: 10 }}>
-            <Statistic
-              title={
-                <span style={{ color: "#fff" }}>Ombordagi tovar jami summasi</span>
-              }
-              value={storeTotalAmount}
-              prefix={
-                <DollarOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#ad6800", borderRadius: 10 }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Tovar beruvchilardan jami qarzim</span>}
-              value={supplierDebtTotal}
-              prefix={
-                <ExclamationCircleOutlined
-                  style={{ fontSize: 45, color: "#fff" }}
-                />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card style={{ background: "#d46b08", borderRadius: 10 }}>
-            <Statistic
-              title={
-                <span style={{ color: "#fff" }}>Tovar beruvchiga tolangan pullar</span>
-              }
-              value={stats.supplier_payments_total}
-              prefix={
-                <DollarOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Number(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card
-            style={{
-              background: "#faad14",
-              borderRadius: 10,
-            }}
-          >
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Sotuvlar soni</span>}
-              value={stats.total_sales_count}
-              prefix={
-                <ShoppingCartOutlined style={{ fontSize: 45, color: "#fff" }} />
-              }
-              valueStyle={{ color: "#fff" }}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={8}>
-          <Card
-            style={{
-              background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
-              borderRadius: 10,
-            }}
-          >
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Kechikan qarz</span>}
-              value={Math.abs(stats.total_profit)}
-              prefix={
-                stats.total_profit >= 0 ? (
-                  <RiseOutlined style={{ fontSize: 45, color: "#fff" }} />
-                ) : (
-                  <FallOutlined style={{ fontSize: 45, color: "#fff" }} />
-                )
-              }
-              suffix="so'm"
-              valueStyle={{ color: "#fff" }}
-              formatter={(v) => Math.abs(v).toLocaleString()}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <div
+        style={{
+          display: "grid",
+          gap: 12,
+          gridTemplateColumns: isMobile
+            ? "1fr"
+            : "repeat(auto-fit, minmax(220px, 1fr))",
+        }}
+      >
+        {summaryCards.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card
+              key={item.title}
+              style={{
+                background: item.background,
+                borderRadius: 12,
+                border: "none",
+                minHeight: isMobile ? 96 : 132,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+              }}
+              bodyStyle={{
+                padding: isMobile ? 14 : 18,
+                height: "100%",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  color: "#fff",
+                }}
+              >
+                <Icon style={{ fontSize: isMobile ? 28 : 40, color: "#fff" }} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.92)",
+                      fontSize: isMobile ? 13 : 14,
+                      lineHeight: 1.2,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {item.title}
+                  </div>
+                  <div
+                    style={{
+                      color: "#fff",
+                      fontWeight: 800,
+                      fontSize: isMobile ? 22 : 30,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {item.formatter ? item.formatter(item.value) : money(item.value)}
+                    {item.suffix === "" ? "" : ` ${item.suffix || "so'm"}`}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
 
       {/* Jadval */}
       <Card title="Mahsulotlar bo'yicha statistika" loading={isFetching}>
-        <Table
-          columns={productCols}
-          dataSource={productData}
-          rowKey="name"
-          pagination={false}
-          scroll={{ x: true }}
-          size={isMobile ? "small" : "middle"}
-        />
+        {isMobile ? (
+          <div style={{ display: "grid", gap: 12 }}>
+            {productData.length === 0 ? (
+              <div style={{ padding: 16, textAlign: "center", color: "#999" }}>
+                Ma'lumot yo'q
+              </div>
+            ) : (
+              productData.map((item) => (
+                <Card
+                  key={item.name}
+                  size="small"
+                  style={{
+                    borderRadius: 12,
+                    border: "1px solid #f0f0f0",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+                  }}
+                  bodyStyle={{ padding: 14 }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 12,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>
+                        {item.name}
+                      </div>
+                      <div style={{ color: "#666", fontSize: 12 }}>
+                        Birlik: {item.unit || "-"}
+                      </div>
+                    </div>
+                    <Tag color={(item.profit ?? 0) >= 0 ? "green" : "red"}>
+                      {Math.abs(item.profit ?? 0).toLocaleString()} so'm
+                    </Tag>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ background: "#f7f7f7", borderRadius: 10, padding: 10 }}>
+                      <div style={{ color: "#666", fontSize: 12 }}>Kirim</div>
+                      <div style={{ fontWeight: 700 }}>
+                        {money(item.revenue)} so'm
+                      </div>
+                    </div>
+                    <div style={{ background: "#f7f7f7", borderRadius: 10, padding: 10 }}>
+                      <div style={{ color: "#666", fontSize: 12 }}>Xarajat</div>
+                      <div style={{ fontWeight: 700 }}>
+                        {money(item.cost)} so'm
+                      </div>
+                    </div>
+                    <div style={{ background: "#f7f7f7", borderRadius: 10, padding: 10 }}>
+                      <div style={{ color: "#666", fontSize: 12 }}>Foyda</div>
+                      <div style={{ fontWeight: 700 }}>
+                        {Math.abs(item.profit ?? 0).toLocaleString()} so'm
+                      </div>
+                    </div>
+                    <div style={{ background: "#f7f7f7", borderRadius: 10, padding: 10 }}>
+                      <div style={{ color: "#666", fontSize: 12 }}>Foyda %</div>
+                      <div style={{ fontWeight: 700 }}>
+                        {Math.abs(item.profit_percentage ?? 0).toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        ) : (
+          <Table
+            columns={productCols}
+            dataSource={productData}
+            rowKey="name"
+            pagination={false}
+            scroll={{ x: true }}
+            size="middle"
+          />
+        )}
       </Card>
     </div>
   );
