@@ -1,6 +1,6 @@
 // pages/KassaPro.jsx
 import React, { useState } from "react";
-import { Layout, Button, Typography, Space, Drawer, Grid } from "antd";
+import { Layout, Button, Space, Drawer, Grid } from "antd";
 import {
   PlusCircleOutlined,
   TruckOutlined,
@@ -18,13 +18,13 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
 const { Header, Content } = Layout;
-const { Title } = Typography;
 
 export default function KassaPro() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const brandLogo = "/zaxidi-logo.svg";
 
   // 🔑 Role olish
   const token = localStorage.getItem("token");
@@ -42,6 +42,63 @@ export default function KassaPro() {
     localStorage.clear();
     navigate("/login");
   };
+
+  const BrandMark = ({ compact = false }) => (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: compact ? 8 : 12,
+        minWidth: 0,
+        flex: "1 1 auto",
+      }}
+    >
+      <img
+        src={brandLogo}
+        alt="ZAXIDI"
+        style={{
+          height: compact ? 34 : 42,
+          width: "auto",
+          display: "block",
+          objectFit: "contain",
+          flex: "0 0 auto",
+        }}
+      />
+      <div
+        style={{
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+        }}
+      >
+        <span
+          style={{
+            color: "white",
+            fontWeight: 800,
+            fontSize: compact ? 14 : 18,
+            lineHeight: 1.1,
+            letterSpacing: 0.4,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          ZAXIDI
+        </span>
+        <span
+          style={{
+            color: "rgba(255,255,255,0.82)",
+            fontSize: compact ? 10 : 12,
+            lineHeight: 1.1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Naturally Healthy Snacks
+        </span>
+      </div>
+    </div>
+  );
 
   // 🔹 Drawer menyu ichidagi tugmalar
   const renderMenuButtons = () => {
@@ -188,15 +245,7 @@ export default function KassaPro() {
       >
         {isMobile ? (
           <>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                minWidth: 0,
-                width: "100%",
-              }}
-            >
+            <div style={{ width: "100%" }}>
               <Button
                 type="text"
                 icon={<MenuOutlined style={{ color: "white", fontSize: 20 }} />}
@@ -212,37 +261,9 @@ export default function KassaPro() {
                   flex: "0 0 auto",
                 }}
               />
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "#1890ff",
-                  borderRadius: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "bold",
-                  flex: "0 0 auto",
-                }}
-              >
-                K
+              <div style={{ marginTop: 10 }}>
+                <BrandMark compact />
               </div>
-              <Title
-                level={5}
-                style={{
-                  margin: 0,
-                  color: "white",
-                  fontSize: 13,
-                  lineHeight: 1.2,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  flex: "1 1 auto",
-                }}
-              >
-                MAZZALI NUT HOUS
-              </Title>
             </div>
             <Space
               wrap
@@ -273,13 +294,13 @@ export default function KassaPro() {
           </>
         ) : (
           <>
-            <div
+            <BrandMark />
+            <Space
+              wrap
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                minWidth: 0,
-                flex: "1 1 auto",
+                justifyContent: "flex-end",
+                width: "auto",
+                gap: 8,
               }}
             >
               <Button
@@ -296,46 +317,6 @@ export default function KassaPro() {
                   borderRadius: 10,
                 }}
               />
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "#1890ff",
-                  borderRadius: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "bold",
-                  flex: "0 0 auto",
-                }}
-              >
-                K
-              </div>
-              <Title
-                level={5}
-                style={{
-                  margin: 0,
-                  color: "white",
-                  fontSize: 18,
-                  lineHeight: 1.2,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                MAZZALI NUT HOUS
-              </Title>
-            </div>
-
-            <Space
-              wrap
-              style={{
-                justifyContent: "flex-end",
-                width: "auto",
-                gap: 8,
-              }}
-            >
               <Button
                 type="default"
                 icon={<ReloadOutlined />}

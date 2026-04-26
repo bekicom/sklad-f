@@ -111,13 +111,27 @@ export default function Login() {
     >
       <Card
         style={{
-          width: 500,
+          width: "100%",
+          maxWidth: 520,
           borderRadius: 8,
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
         }}
         bodyStyle={{ padding: 40 }}
       >
-        <Title level={2} style={{ textAlign: "center", marginBottom: 30 }}>
+        <div style={{ textAlign: "center", marginBottom: 22 }}>
+          <img
+            src="/zaxidi-logo.svg"
+            alt="ZAXIDI"
+            style={{
+              width: "100%",
+              maxWidth: 320,
+              height: "auto",
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <Title level={3} style={{ textAlign: "center", marginBottom: 30 }}>
           Tizimga kirish
         </Title>
 

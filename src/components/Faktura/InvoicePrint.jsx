@@ -281,7 +281,14 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
               }}
               colSpan="4"
             >
-              MAZZALI - SOTUV FAKTURASI
+              <div style={{ marginBottom: "8px" }}>
+                <img
+                  src="/zaxidi-logo.svg"
+                  alt="ZAXIDI"
+                  style={{ height: "42px", width: "auto" }}
+                />
+              </div>
+              ZAXIDI - SOTUV FAKTURASI
             </td>
           </tr>
           <tr>
