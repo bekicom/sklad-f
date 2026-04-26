@@ -13,6 +13,7 @@ import {
   message,
   InputNumber,
   Space,
+  Grid,
 } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { useReactToPrint } from "react-to-print";
@@ -29,6 +30,9 @@ const normalizeSearchText = (value = "") =>
     .replace(/['`’]/g, "");
 
 export default function Sale() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const { data: productsData = [], isLoading, refetch: refetchStore } =
     useGetAllStoreItemsQuery({ view: "sale" });
 
@@ -293,12 +297,32 @@ export default function Sale() {
   }
 
   return (
-    <div style={{ display: "flex", gap: "20px" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        gap: "20px",
+        maxWidth: 1440,
+        margin: "0 auto",
+        width: "100%",
+      }}
+    >
       {/* Chap taraf */}
-      <div style={{ flex: 3 }}>
-        <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
+      <div style={{ flex: isMobile ? "1 1 auto" : 3, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            marginBottom: "15px",
+            flexWrap: "wrap",
+          }}
+        >
           <Input
-            style={{ height: 40, width: 400, fontSize: 17 }}
+            style={{
+              height: 40,
+              width: isMobile ? "100%" : 400,
+              fontSize: 17,
+            }}
             placeholder="Mahsulot qidirish..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -306,7 +330,7 @@ export default function Sale() {
           <Select
             value={category}
             onChange={(v) => setCategory(v)}
-            style={{ height: 40, width: 250 }}
+            style={{ height: 40, width: isMobile ? "100%" : 250 }}
           >
             <Option value="Barchasi">Barchasi</Option>
             {[...new Set(productsData.map((p) => p.product_name))].map(
@@ -318,7 +342,7 @@ export default function Sale() {
             )}
           </Select>
           <Button
-            style={{ height: 40, width: 150 }}
+            style={{ height: 40, width: isMobile ? "100%" : 150 }}
             onClick={() => {
               setSearch("");
               setCategory("Barchasi");
@@ -337,13 +361,13 @@ export default function Sale() {
             return (
               <Col
                 key={p._id}
-                xs={24}
-                sm={12}
-                md={8}
-                lg={6}
-                xl={4}
-                style={{ display: "flex", flexWrap: "wrap" }}
-              >
+              xs={24}
+              sm={12}
+              md={8}
+              lg={6}
+              xl={4}
+              style={{ display: "flex", flexWrap: "wrap" }}
+            >
                 <Card
                   hoverable={isAvailable(p)}
                   onClick={() => addToCart(p)}
@@ -358,10 +382,10 @@ export default function Sale() {
                     cursor: isAvailable(p) ? "pointer" : "not-allowed",
                     transition: "all 0.2s ease",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    height: "160px",
+                    height: isMobile ? "130px" : "160px",
                   }}
                   bodyStyle={{
-                    padding: "20px 16px",
+                    padding: isMobile ? "12px 10px" : "20px 16px",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -372,9 +396,9 @@ export default function Sale() {
                 >
                   <div
                     style={{
-                      fontSize: "24px",
+                      fontSize: isMobile ? "16px" : "24px",
                       fontWeight: "bold",
-                      marginBottom: 4,
+                      marginBottom: isMobile ? 2 : 4,
                       lineHeight: "22px",
                       color: "#1677ff",
                     }}
@@ -385,9 +409,9 @@ export default function Sale() {
                   {p.model && (
                     <div
                       style={{
-                        fontSize: "22px",
+                        fontSize: isMobile ? "14px" : "22px",
                         color: "#555",
-                        marginBottom: 8,
+                        marginBottom: isMobile ? 4 : 8,
                         fontWeight: 500,
                       }}
                     >
@@ -396,17 +420,17 @@ export default function Sale() {
                   )}
                   <div
                     style={{
-                      fontSize: "22px",
+                      fontSize: isMobile ? "16px" : "22px",
                       fontWeight: "700",
                       color: "#1677ff",
-                      marginBottom: 8,
+                      marginBottom: isMobile ? 4 : 8,
                     }}
                   >
                     {p.sell_price.toLocaleString()} so'm
                   </div>
                   <div
                     style={{
-                      fontSize: "20px",
+                      fontSize: isMobile ? "14px" : "20px",
                       fontWeight: "600",
                       color: isAvailable(p) ? "#52c41a" : "red",
                     }}
@@ -423,17 +447,17 @@ export default function Sale() {
       {/* O'ng taraf - savat */}
       <div
         style={{
-          flex: 1,
+          flex: isMobile ? "1 1 auto" : 1,
           background: "#fff",
           borderRadius: 12,
-          padding: 16,
+          padding: isMobile ? 12 : 16,
           display: "flex",
           flexDirection: "column",
-          maxHeight: "calc(100vh - 100px)",
+          maxHeight: isMobile ? "auto" : "calc(100vh - 100px)",
           overflow: "hidden",
         }}
       >
-        <h3 style={{ marginBottom: 16 }}>
+        <h3 style={{ marginBottom: 16, fontSize: isMobile ? 18 : 16 }}>
           Savat <Badge count={cart.length} />
         </h3>
 
@@ -443,22 +467,24 @@ export default function Sale() {
             renderItem={(item) => (
               <List.Item
                 style={{
-                  padding: "16px",
+                  padding: isMobile ? "12px" : "16px",
                   background: "#ffffff",
                   borderRadius: 12,
                   marginBottom: 12,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                   border: "1px solid #f0f0f0",
                   display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
                   justifyContent: "space-between",
-                  alignItems: "center",
+                  alignItems: isMobile ? "stretch" : "center",
+                  gap: isMobile ? 10 : 0,
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
                       fontWeight: 600,
-                      fontSize: 16,
+                      fontSize: isMobile ? 14 : 16,
                       color: item.count <= 20 ? "red" : "inherit",
                     }}
                   >
@@ -466,19 +492,23 @@ export default function Sale() {
                   </div>
                   {item.model && (
                     <div
-                      style={{ fontWeight: 500, fontSize: 14, color: "#555" }}
+                      style={{
+                        fontWeight: 500,
+                        fontSize: isMobile ? 12 : 14,
+                        color: "#555",
+                      }}
                     >
                       Model: {item.model}
                     </div>
                   )}
                   <div style={{ fontSize: 13, color: "#888" }}>
-                    <Space>
+                    <Space wrap>
                       Narx:
                       <InputNumber
                         min={1}
                         value={item.sell_price}
                         onChange={(value) => updatePrice(item._id, value)}
-                        style={{ width: 100 }}
+                        style={{ width: isMobile ? 88 : 100 }}
                         formatter={(value) =>
                           `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                         }
@@ -499,18 +529,20 @@ export default function Sale() {
                   </div>
                 </div>
 
-                <Space>
+                <Space wrap>
                   <InputNumber
                     min={1}
                     max={item.quantity}
                     value={item.count}
                     onChange={(value) => updateCount(item._id, value)}
+                    style={{ width: isMobile ? "100%" : 90 }}
                   />
                   <Button
                     type="primary"
                     danger
                     icon={<DeleteOutlined />}
                     onClick={() => removeFromCart(item._id)}
+                    block={isMobile}
                   />
                 </Space>
               </List.Item>
@@ -521,7 +553,13 @@ export default function Sale() {
         <Divider style={{ margin: "12px 0" }} />
 
         <div style={{ marginTop: "auto" }}>
-          <h3 style={{ textAlign: "right", marginBottom: 12 }}>
+          <h3
+            style={{
+              textAlign: "right",
+              marginBottom: 12,
+              fontSize: isMobile ? 16 : 18,
+            }}
+          >
             Jami:{" "}
             <span style={{ color: "#1890ff", fontSize: 18 }}>
               {totalPrice.toLocaleString()} so'm

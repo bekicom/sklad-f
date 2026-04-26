@@ -9,6 +9,7 @@ import {
   Typography,
   message,
   Spin,
+  Grid,
 } from "antd";
 import dayjs from "dayjs";
 import {
@@ -20,6 +21,9 @@ import {
 const { Title } = Typography;
 
 export default function Expense() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   // ======== API hooks ========
   const { data: categoriesData, isLoading, refetch } = useGetCategoriesQuery();
   const [createCategory] = useCreateCategoryMutation();
@@ -119,15 +123,15 @@ export default function Expense() {
   ];
 
   return (
-    <div>
-      <Title level={3} style={{ marginBottom: 16 }}>
+    <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%" }}>
+      <Title level={isMobile ? 4 : 3} style={{ marginBottom: 16 }}>
         Xarajatlar boshqaruvi
       </Title>
 
       <Button
         type="primary"
         onClick={() => setIsCategoryModal(true)}
-        style={{ marginBottom: 16 }}
+        style={{ marginBottom: 16, width: isMobile ? "100%" : "auto" }}
       >
         + Kategoriya qo‘shish
       </Button>
@@ -141,7 +145,8 @@ export default function Expense() {
           rowKey={(record, index) => record._id || index}
           columns={columns}
           dataSource={categories}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
+          size={isMobile ? "small" : "middle"}
+          pagination={{ pageSize: isMobile ? 5 : 10, showSizeChanger: !isMobile }}
           scroll={{ x: 700 }}
           summary={(pageData) => {
             let total = 0;
@@ -175,6 +180,7 @@ export default function Expense() {
         onCancel={() => setIsCategoryModal(false)}
         okText="Qo‘shish"
         cancelText="Bekor qilish"
+        width={isMobile ? "95%" : 520}
       >
         <Input
           placeholder="Kategoriya nomi"
@@ -191,7 +197,7 @@ export default function Expense() {
         onCancel={() => setIsExpenseModal(false)}
         okText="Yangi qo‘shish"
         cancelText="Yopish"
-        width={600}
+        width={isMobile ? "95%" : 600}
       >
         <Space direction="vertical" style={{ width: "100%" }}>
           {/* Mavjud xarajatlar ro‘yxati */}

@@ -10,6 +10,7 @@ import {
   Modal,
   message,
   Popconfirm,
+  Grid,
 } from "antd";
 import Createombor from "../components/Createomor/Createombor";
 import {
@@ -20,6 +21,9 @@ import {
 import { useGetClientsQuery } from "../context/service/client.service";
 
 export default function Ombor() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const { data: clients = [], refetch: refetchClients } = useGetClientsQuery();
@@ -240,22 +244,30 @@ export default function Ombor() {
   console.log(clients);
 
   return (
-    <div>
-      <Space style={{ marginBottom: 16 }}>
+    <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%" }}>
+      <Space
+        wrap
+        style={{
+          marginBottom: 16,
+          width: "100%",
+        }}
+      >
         <Button
           type="primary"
           onClick={() => {
             setEditingItem(null); // Reset edit mode
             setIsModalOpen(true);
+            setSelectedSupplier(null);
           }}
+          style={{ width: isMobile ? "100%" : "auto" }}
         >
           Omborga mahsulot qo'shish +
         </Button>
       </Space>
 
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={8}>
-          <Card>
+      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12} md={8}>
+          <Card bodyStyle={{ padding: isMobile ? 12 : 24 }}>
             <Statistic
               title="Ombordagi jami tavar narxi (UZS)"
               value={totalBalance}
@@ -265,8 +277,8 @@ export default function Ombor() {
             />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card>
+        <Col xs={24} sm={12} md={8}>
+          <Card bodyStyle={{ padding: isMobile ? 12 : 24 }}>
             <Statistic
               title="Jami sotish narxi (UZS)"
               value={totalSellAmount}
@@ -276,8 +288,8 @@ export default function Ombor() {
             />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card>
+        <Col xs={24} sm={12} md={8}>
+          <Card bodyStyle={{ padding: isMobile ? 12 : 24 }}>
             <Statistic
               title="Keshbek (UZS)"
               value={totalProfit}
@@ -293,7 +305,9 @@ export default function Ombor() {
         columns={outerColumns}
         dataSource={groupedSuppliers}
         loading={isLoading}
-        pagination={{ pageSize: 10 }}
+        size={isMobile ? "small" : "middle"}
+        pagination={{ pageSize: isMobile ? 5 : 10, showSizeChanger: false }}
+        scroll={{ x: 900 }}
         rowKey={(row) => row.supplier?._id}
       />
 
@@ -312,7 +326,8 @@ export default function Ombor() {
         open={supplierModalOpen}
         onCancel={() => setSupplierModalOpen(false)}
         footer={null}
-        width={1200} // Kengaytirildi amallar ustuni uchun
+        width={isMobile ? "95%" : 1200}
+        style={{ top: isMobile ? 12 : 24 }}
       >
         <Table
           columns={[
@@ -334,6 +349,8 @@ export default function Ombor() {
             },
           ]}
           dataSource={selectedSupplier?.partiyalar || []}
+          size={isMobile ? "small" : "middle"}
+          scroll={{ x: 760 }}
           expandable={{
             expandedRowRender: (record) => (
               <Table
@@ -342,6 +359,7 @@ export default function Ombor() {
                 rowKey={(row) => row._id}
                 pagination={false}
                 size="small"
+                scroll={{ x: 1100 }}
               />
             ),
           }}

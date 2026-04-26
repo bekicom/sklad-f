@@ -11,6 +11,7 @@ import {
   Button,
   message,
   Typography,
+  Grid,
 } from "antd";
 import {
   useCreateImportMutation,
@@ -26,6 +27,8 @@ import { getUnitFactor, getBaseUnit, normalizeUnit } from "../../utils/units";
 const { Text } = Typography;
 
 export default function CreateOmbor({ open, onClose, editingItem = null }) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [form] = Form.useForm();
   const [totalSum, setTotalSum] = useState(0);
   const [remainingDebt, setRemainingDebt] = useState(0);
@@ -240,6 +243,157 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
     { label: "Karobka", value: "karobka" }, // ✅ Qo'shildi
   ];
 
+  const modalWidth = isEditMode ? (isMobile ? "95%" : 920) : (isMobile ? "95%" : 1300);
+  const clientModalWidth = isMobile ? "95%" : 520;
+  const fieldCol = isMobile ? 24 : 8;
+  const halfCol = isMobile ? 24 : 12;
+
+  const renderProductFields = (name, key, fields, remove) => (
+    <div
+      key={key}
+      style={{
+        border: "1px solid #f0f0f0",
+        borderRadius: 12,
+        padding: isMobile ? 12 : 14,
+        marginBottom: 12,
+        background: "#fafafa",
+      }}
+    >
+      <Row gutter={12}>
+        <Col xs={24} md={3}>
+          <Form.Item
+            label={isMobile ? "Mahsulot" : undefined}
+            name={[name, "product_name"]}
+            rules={[{ required: true, message: "Mahsulot nomini kiriting" }]}
+            style={{ marginBottom: 8 }}
+          >
+            <Input placeholder="Mahsulot nomi" />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={2}>
+          <Form.Item
+            label={isMobile ? "Model" : undefined}
+            name={[name, "model"]}
+            style={{ marginBottom: 8 }}
+          >
+            <Input placeholder="Model" />
+          </Form.Item>
+        </Col>
+        <Col xs={12} md={2}>
+          <Form.Item
+            label={isMobile ? "Birlik" : undefined}
+            name={[name, "unit"]}
+            rules={[{ required: true, message: "Birlikni tanlang" }]}
+            style={{ marginBottom: 8 }}
+          >
+            <Select options={unitOptions} placeholder="Birlik" />
+          </Form.Item>
+        </Col>
+        <Col xs={12} md={3}>
+          <Form.Item
+            label={isMobile ? "Miqdor" : undefined}
+            name={[name, "quantity"]}
+            rules={[{ required: true }]}
+            style={{ marginBottom: 8 }}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0.01}
+              step={0.01}
+              placeholder="Miqdor"
+              formatter={numberFormatter}
+              parser={numberParser}
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={12} md={3}>
+          <Form.Item
+            label={isMobile ? "Birlik narx" : undefined}
+            name={[name, "unit_price"]}
+            rules={[{ required: true }]}
+            style={{ marginBottom: 8 }}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0.01}
+              step={0.01}
+              placeholder="Birlik narx"
+              formatter={numberFormatter}
+              parser={numberParser}
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={12} md={3}>
+          <Form.Item
+            label={isMobile ? "Jami narx" : undefined}
+            name={[name, "total_price"]}
+            rules={[{ required: true, message: "Jami narx bo'sh bo'lishi mumkin emas" }]}
+            style={{ marginBottom: 8 }}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              readOnly
+              placeholder="Jami narx"
+              formatter={numberFormatter}
+              parser={numberParser}
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={12} md={3}>
+          <Form.Item
+            label={isMobile ? "Sotish narxi" : undefined}
+            name={[name, "sell_price"]}
+            rules={[{ required: true }]}
+            style={{ marginBottom: 8 }}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0.01}
+              step={0.01}
+              placeholder="Sotish narxi"
+              formatter={numberFormatter}
+              parser={numberParser}
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={12} md={2}>
+          <Form.Item
+            label={isMobile ? "Valyuta" : undefined}
+            name={[name, "currency"]}
+            rules={[{ required: true }]}
+            style={{ marginBottom: 8 }}
+          >
+            <Select
+              options={[
+                { label: "UZS", value: "UZS" },
+                { label: "USD", value: "USD" },
+              ]}
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={1}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              height: "100%",
+              paddingBottom: 8,
+            }}
+          >
+            <Button
+              danger
+              onClick={() => remove(name)}
+              disabled={fields.length === 1}
+              block={isMobile}
+            >
+              ❌
+            </Button>
+          </div>
+        </Col>
+      </Row>
+    </div>
+  );
+
   return (
     <>
       <Modal
@@ -248,6 +402,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
         onOk={handleAddClient}
         onCancel={() => setIsClientModalOpen(false)}
         confirmLoading={isCreatingClient}
+        width={clientModalWidth}
       >
         <Form layout="vertical">
           <Form.Item label="Mijoz nomi" required>
@@ -278,7 +433,8 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
         open={open}
         onCancel={handleCancel}
         footer={null}
-        width={isEditMode ? 800 : 1300}
+        width={modalWidth}
+        style={{ top: isMobile ? 8 : 24 }}
         destroyOnClose
       >
         <Form
@@ -295,7 +451,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           {isEditMode ? (
             <>
               <Row gutter={16}>
-                <Col span={24}>
+                <Col xs={24}>
                   <Form.Item
                     label="Yetkazib beruvchi"
                     name="client_id"
@@ -334,7 +490,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               </Row>
 
               <Row gutter={16}>
-                <Col span={12}>
+                <Col xs={24} md={12}>
                   <Form.Item
                     label="Mahsulot nomi"
                     name="product_name"
@@ -345,7 +501,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     <Input placeholder="Mahsulot nomi" />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
+                <Col xs={24} md={12}>
                   <Form.Item label="Model" name="model">
                     <Input placeholder="Model" />
                   </Form.Item>
@@ -353,7 +509,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               </Row>
 
               <Row gutter={16}>
-                <Col span={8}>
+                <Col xs={24} md={8}>
                   <Form.Item
                     label="O'lchov birligi"
                     name="unit"
@@ -364,7 +520,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     <Select options={unitOptions} placeholder="Birlikni tanlang" />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
+                <Col xs={12} md={8}>
                   <Form.Item
                     label="Miqdor"
                     name="quantity"
@@ -380,7 +536,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
+                <Col xs={12} md={8}>
                   <Form.Item
                     label="Valyuta"
                     name="currency"
@@ -397,7 +553,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               </Row>
 
               <Row gutter={16}>
-                <Col span={12}>
+                <Col xs={24} md={12}>
                   <Form.Item
                     label="Sotib olish narxi"
                     name="purchase_price"
@@ -418,7 +574,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
+                <Col xs={24} md={12}>
                   <Form.Item
                     label="Sotish narxi"
                     name="sell_price"
@@ -439,7 +595,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               </Row>
 
               <Row gutter={16}>
-                <Col span={8}>
+                <Col xs={24} md={8}>
                   <Form.Item
                     label="Partiya raqami"
                     name="partiya_number"
@@ -452,7 +608,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
+                <Col xs={12} md={8}>
                   <Form.Item label="To'langan summa" name="paid_amount">
                     <InputNumber
                       style={{ width: "100%" }}
@@ -462,7 +618,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
+                <Col xs={12} md={8}>
                   <Form.Item label="Qolgan qarz" name="remaining_debt">
                     <InputNumber
                       style={{ width: "100%" }}
@@ -481,7 +637,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           ) : (
             <>
               <Row gutter={16}>
-                <Col span={24}>
+                <Col xs={24}>
                   <Form.Item
                     label="Mijoz"
                     name="client_id"
@@ -526,7 +682,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               </Row>
 
               <Row gutter={16}>
-                <Col span={8}>
+                <Col xs={24} md={8}>
                   <Form.Item
                     label="USD kursi"
                     name="usd_rate"
@@ -540,7 +696,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
+                <Col xs={12} md={8}>
                   <Form.Item label="Bergan summa" name="paid_amount">
                     <InputNumber
                       style={{ width: "100%" }}
@@ -550,7 +706,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                     />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
+                <Col xs={12} md={8}>
                   <Form.Item
                     label="Partiya raqami"
                     name="partiya_number"
@@ -566,20 +722,22 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               </Row>
 
               <Row gutter={16} style={{ marginBottom: 10 }}>
-                <Col span={12}>
+                <Col xs={24} md={12}>
                   <Card
                     size="small"
                     title="Umumiy summa (UZS):"
                     style={{ background: "#e3f2fd" }}
+                    bodyStyle={{ padding: isMobile ? 12 : 16 }}
                   >
                     <Text strong>{totalSum.toLocaleString("ru-RU")}</Text>
                   </Card>
                 </Col>
-                <Col span={12}>
+                <Col xs={24} md={12}>
                   <Card
                     size="small"
                     title="Qoldiq qarz (UZS):"
                     style={{ background: "#fff9c4" }}
+                    bodyStyle={{ padding: isMobile ? 12 : 16 }}
                   >
                     <Text strong>{remainingDebt.toLocaleString("ru-RU")}</Text>
                   </Card>
@@ -589,134 +747,139 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               <Form.List name="products">
                 {(fields, { add, remove }) => (
                   <>
-                    {fields.map(({ key, name }) => (
-                      <Row gutter={8} key={key} style={{ marginBottom: 8 }}>
-                        <Col span={3}>
-                          <Form.Item
-                            name={[name, "product_name"]}
-                            rules={[
-                              {
-                                required: true,
-                                message: "Mahsulot nomini kiriting",
-                              },
-                            ]}
-                          >
-                            <Input placeholder="Mahsulot nomi" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={2}>
-                          <Form.Item name={[name, "model"]}>
-                            <Input placeholder="Model" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={2}>
-                          <Form.Item
-                            name={[name, "unit"]}
-                            rules={[
-                              {
-                                required: true,
-                                message: "Birlikni tanlang",
-                              },
-                            ]}
-                          >
-                            <Select
-                              options={unitOptions}
-                              placeholder="Birlik"
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={3}>
-                          <Form.Item
-                            name={[name, "quantity"]}
-                            rules={[{ required: true }]}
-                          >
-                            <InputNumber
-                              style={{ width: "100%" }}
-                              min={0.01}
-                              step={0.01}
-                              placeholder="Miqdor"
-                              formatter={numberFormatter}
-                              parser={numberParser}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={3}>
-                          <Form.Item
-                            name={[name, "unit_price"]}
-                            rules={[{ required: true }]}
-                          >
-                            <InputNumber
-                              style={{ width: "100%" }}
-                              min={0.01}
-                              step={0.01}
-                              placeholder="Birlik narx"
-                              formatter={numberFormatter}
-                              parser={numberParser}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={3}>
-                          <Form.Item
-                            name={[name, "total_price"]}
-                            rules={[
-                              {
-                                required: true,
-                                message: "Jami narx bo'sh bo'lishi mumkin emas",
-                              },
-                            ]}
-                          >
-                            <InputNumber
-                              style={{ width: "100%" }}
-                              readOnly
-                              placeholder="Jami narx"
-                              formatter={numberFormatter}
-                              parser={numberParser}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={3}>
-                          <Form.Item
-                            name={[name, "sell_price"]}
-                            rules={[{ required: true }]}
-                          >
-                            <InputNumber
-                              style={{ width: "100%" }}
-                              min={0.01}
-                              step={0.01}
-                              placeholder="Sotish narxi"
-                              formatter={numberFormatter}
-                              parser={numberParser}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={2}>
-                          <Form.Item
-                            name={[name, "currency"]}
-                            rules={[{ required: true }]}
-                          >
-                            <Select
-                              options={[
-                                { label: "UZS", value: "UZS" },
-                                { label: "USD", value: "USD" },
+                    {fields.map(({ key, name }) =>
+                      isMobile ? (
+                        renderProductFields(name, key, fields, remove)
+                      ) : (
+                        <Row gutter={8} key={key} style={{ marginBottom: 8 }}>
+                          <Col span={3}>
+                            <Form.Item
+                              name={[name, "product_name"]}
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "Mahsulot nomini kiriting",
+                                },
                               ]}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={1}>
-                          <Button
-                            danger
-                            onClick={() => remove(name)}
-                            disabled={fields.length === 1}
-                          >
-                            ❌
-                          </Button>
-                        </Col>
-                      </Row>
-                    ))}
+                            >
+                              <Input placeholder="Mahsulot nomi" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={2}>
+                            <Form.Item name={[name, "model"]}>
+                              <Input placeholder="Model" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={2}>
+                            <Form.Item
+                              name={[name, "unit"]}
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "Birlikni tanlang",
+                                },
+                              ]}
+                            >
+                              <Select
+                                options={unitOptions}
+                                placeholder="Birlik"
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={3}>
+                            <Form.Item
+                              name={[name, "quantity"]}
+                              rules={[{ required: true }]}
+                            >
+                              <InputNumber
+                                style={{ width: "100%" }}
+                                min={0.01}
+                                step={0.01}
+                                placeholder="Miqdor"
+                                formatter={numberFormatter}
+                                parser={numberParser}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={3}>
+                            <Form.Item
+                              name={[name, "unit_price"]}
+                              rules={[{ required: true }]}
+                            >
+                              <InputNumber
+                                style={{ width: "100%" }}
+                                min={0.01}
+                                step={0.01}
+                                placeholder="Birlik narx"
+                                formatter={numberFormatter}
+                                parser={numberParser}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={3}>
+                            <Form.Item
+                              name={[name, "total_price"]}
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "Jami narx bo'sh bo'lishi mumkin emas",
+                                },
+                              ]}
+                            >
+                              <InputNumber
+                                style={{ width: "100%" }}
+                                readOnly
+                                placeholder="Jami narx"
+                                formatter={numberFormatter}
+                                parser={numberParser}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={3}>
+                            <Form.Item
+                              name={[name, "sell_price"]}
+                              rules={[{ required: true }]}
+                            >
+                              <InputNumber
+                                style={{ width: "100%" }}
+                                min={0.01}
+                                step={0.01}
+                                placeholder="Sotish narxi"
+                                formatter={numberFormatter}
+                                parser={numberParser}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={2}>
+                            <Form.Item
+                              name={[name, "currency"]}
+                              rules={[{ required: true }]}
+                            >
+                              <Select
+                                options={[
+                                  { label: "UZS", value: "UZS" },
+                                  { label: "USD", value: "USD" },
+                                ]}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={1}>
+                            <Button
+                              danger
+                              onClick={() => remove(name)}
+                              disabled={fields.length === 1}
+                            >
+                              ❌
+                            </Button>
+                          </Col>
+                        </Row>
+                      )
+                    )}
                     <Button
                       type="dashed"
                       block
                       onClick={() => add({ currency: "UZS", unit: null })}
+                      style={{ marginTop: 8 }}
                     >
                       + Mahsulot qo'shish
                     </Button>
@@ -726,7 +889,15 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
             </>
           )}
 
-          <div style={{ textAlign: "right", marginTop: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: isMobile ? "stretch" : "flex-end",
+              gap: 8,
+              marginTop: 16,
+              flexDirection: isMobile ? "column-reverse" : "row",
+            }}
+          >
             <Button onClick={handleCancel} style={{ marginRight: 8 }}>
               Bekor qilish
             </Button>
@@ -734,6 +905,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
               type="primary"
               htmlType="submit"
               loading={isEditMode ? isUpdating : isLoading}
+              block={isMobile}
             >
               {isEditMode ? "Yangilash" : "Saqlash"}
             </Button>

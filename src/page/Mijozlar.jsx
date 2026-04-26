@@ -10,6 +10,7 @@ import {
   InputNumber,
   message,
   Popconfirm,
+  Grid,
 } from "antd";
 import dayjs from "dayjs";
 import { DeleteOutlined } from "@ant-design/icons";
@@ -27,6 +28,9 @@ const { Text } = Typography;
 const onlyDigits = (value = "") => String(value).replace(/\D/g, "");
 
 export default function Mijozlar() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const {
     data: salesResp,
     isLoading,
@@ -728,18 +732,28 @@ export default function Mijozlar() {
   };
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div
+      style={{
+        display: "grid",
+        gap: 12,
+        maxWidth: 1440,
+        margin: "0 auto",
+        width: "100%",
+      }}
+    >
       <div
         style={{
           display: "flex",
+          flexDirection: isMobile ? "column" : "row",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 10,
         }}
       >
-        <h2 style={{ margin: 0 }}>👥 Mijozlar</h2>
+        <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24 }}>👥 Mijozlar</h2>
         <Input
           placeholder="Mijoz / telefon / manzil bo'yicha qidirish..."
-          style={{ width: 360 }}
+          style={{ width: isMobile ? "100%" : 360 }}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           allowClear
@@ -750,6 +764,9 @@ export default function Mijozlar() {
         rowKey={(r) => r._id}
         columns={columns}
         dataSource={customers}
+        size={isMobile ? "small" : "middle"}
+        pagination={{ pageSize: isMobile ? 5 : 10, showSizeChanger: !isMobile }}
+        scroll={{ x: 980 }}
         expandable={{
           expandedRowRender: (record) => (
             <div
@@ -775,6 +792,7 @@ export default function Mijozlar() {
         okText="To'lash"
         cancelText="Bekor qilish"
         okButtonProps={{ disabled: !payModal.note || !payModal.note.trim() }}
+        width={isMobile ? "95%" : 520}
       >
         <p>
           Qolgan qarz:{" "}
@@ -808,6 +826,7 @@ export default function Mijozlar() {
         open={historyModal.open}
         title={`💵 To'lov tarixi — ${historyModal.customer?.name}`}
         footer={null}
+        width={isMobile ? "95%" : 720}
         onCancel={() =>
           setHistoryModal({ open: false, customer: null, history: [] })
         }
@@ -832,6 +851,7 @@ export default function Mijozlar() {
         confirmLoading={savingLocal || updatingCustomer}
         okText="Saqlash"
         cancelText="Bekor qilish"
+        width={isMobile ? "95%" : 420}
       >
         <div style={{ display: "grid", gap: 8 }}>
           <Input

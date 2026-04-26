@@ -1,12 +1,15 @@
 // pages/AgentSalesHistory.jsx
 import React, { useMemo, useState } from "react";
-import { Table, Tag, Space, Card, DatePicker, Button } from "antd";
+import { Table, Tag, Space, Card, DatePicker, Button, Grid } from "antd";
 import dayjs from "dayjs";
 
 import { useGetSalesQuery } from "../context/service/sales.service";
 const { RangePicker } = DatePicker;
 
 export default function AgentSalesHistory() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   // 🔑 Token ichidan agent ID olish
   const token = localStorage.getItem("token");
   const agentId = token ? JSON.parse(atob(token.split(".")[1]))?.agentId : null;
@@ -124,26 +127,57 @@ export default function AgentSalesHistory() {
   ];
 
   return (
-    <div>
-      <h2>🧾 Mening sotuvlarim</h2>
+    <div
+      style={{
+        maxWidth: 1280,
+        margin: "0 auto",
+        width: "100%",
+        padding: isMobile ? "4px 2px 12px" : 0,
+      }}
+    >
+      <h2
+        style={{
+          margin: "0 0 12px",
+          fontSize: isMobile ? 20 : 28,
+          lineHeight: 1.2,
+        }}
+      >
+        🧾 Mening sotuvlarim
+      </h2>
       <div style={{ marginBottom: 10 }}>
-        <Space wrap>
+        <Space
+          wrap
+          style={{
+            width: "100%",
+            gap: 8,
+            alignItems: "stretch",
+          }}
+        >
           <RangePicker
             value={dateRange}
             onChange={(values) => setDateRange(values)}
             format="DD.MM.YYYY"
             allowClear
+            style={{ width: isMobile ? "100%" : 280 }}
           />
           <Button
             onClick={() =>
               setDateRange([dayjs().startOf("day"), dayjs().endOf("day")])
             }
+            block={isMobile}
           >
             Bir kunlik
           </Button>
         </Space>
       </div>
-      <div style={{ marginBottom: 12, color: "#666", fontSize: 13 }}>
+      <div
+        style={{
+          marginBottom: 12,
+          color: "#666",
+          fontSize: 13,
+          lineHeight: 1.4,
+        }}
+      >
         {periodLabel}
       </div>
       <div
@@ -151,7 +185,9 @@ export default function AgentSalesHistory() {
           marginBottom: 14,
           display: "grid",
           gap: 12,
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gridTemplateColumns: isMobile
+            ? "1fr"
+            : "repeat(auto-fit, minmax(280px, 1fr))",
         }}
       >
         <Card
@@ -194,7 +230,13 @@ export default function AgentSalesHistory() {
         rowKey={(r) => r._id}
         columns={columns}
         dataSource={filteredSales}
-        pagination={{ pageSize: 10 }}
+        size={isMobile ? "small" : "middle"}
+        pagination={{
+          pageSize: isMobile ? 5 : 10,
+          showSizeChanger: false,
+          position: ["bottomCenter"],
+        }}
+        scroll={{ x: 760 }}
         expandable={{
           expandedRowRender: (record) => (
             <ul style={{ margin: 0 }}>

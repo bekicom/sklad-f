@@ -11,11 +11,11 @@ import {
   InputNumber,
   Space,
   Drawer,
+  Grid,
 } from "antd";
 import {
   DeleteOutlined,
   ShoppingCartOutlined,
-  MenuOutlined,
 } from "@ant-design/icons";
 import { useReactToPrint } from "react-to-print";
 import { useGetAllStoreItemsQuery } from "../context/service/store.service";
@@ -223,6 +223,9 @@ function CartContent({
 }
 
 export default function Agentsotuv() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const { data: productsData = [], isLoading } = useGetAllStoreItemsQuery({
     view: "sale",
   });
@@ -506,7 +509,11 @@ export default function Agentsotuv() {
           >
             <Input
               className="search-input"
-              style={{ height: 40, minWidth: 100, flex: 2 }}
+              style={{
+                height: 40,
+                minWidth: 100,
+                flex: isMobile ? "1 1 100%" : 2,
+              }}
               placeholder="Mahsulot qidirish..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -515,7 +522,11 @@ export default function Agentsotuv() {
               className="category-select"
               value={category}
               onChange={setCategory}
-              style={{ height: 40, minWidth: 50, flex: 1 }}
+              style={{
+                height: 40,
+                minWidth: 50,
+                flex: isMobile ? "1 1 100%" : 1,
+              }}
             >
               <Option value="Barchasi">Barchasi</Option>
               {[...new Set(productsData.map((p) => p.product_name))].map(
@@ -529,9 +540,15 @@ export default function Agentsotuv() {
 
             <Button
               type="primary"
-              icon={<MenuOutlined />}
+              icon={<ShoppingCartOutlined />}
               onClick={() => setDrawerVisible(true)}
-              style={{ whiteSpace: "nowrap" }}
+              style={{
+                whiteSpace: "nowrap",
+                borderRadius: 999,
+                height: 40,
+                minWidth: isMobile ? "100%" : 160,
+                boxShadow: "0 8px 20px rgba(24, 144, 255, 0.18)",
+              }}
             >
               Savatcha <Badge count={cart.length} style={{ marginLeft: 8 }} />
             </Button>
@@ -542,7 +559,9 @@ export default function Agentsotuv() {
             style={{
               display: "grid",
               gap: 15,
-              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "repeat(5, minmax(0, 1fr))",
             }}
           >
             {filteredProducts.map((p) => (
@@ -555,11 +574,11 @@ export default function Agentsotuv() {
                     border: "1px solid #e8f4fd",
                     background: p.quantity <= 20 ? "#df6d6dff" : "#fff",
                     cursor: p.quantity > 0 ? "pointer" : "not-allowed",
-                    height: "150px",
+                    height: isMobile ? "122px" : "150px",
                     transition: "all 0.2s ease",
                   }}
                   bodyStyle={{
-                    padding: 12,
+                    padding: isMobile ? 10 : 12,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "center",
@@ -570,10 +589,10 @@ export default function Agentsotuv() {
                   <div
                     className="product-name"
                     style={{
-                      fontSize: "16px",
+                      fontSize: isMobile ? "14px" : "16px",
                       fontWeight: "bold",
                       color: "#1677ff",
-                      marginBottom: 4,
+                      marginBottom: 2,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -585,9 +604,9 @@ export default function Agentsotuv() {
                   <div
                     className="product-model"
                     style={{
-                      fontSize: "14px",
+                      fontSize: isMobile ? "12px" : "14px",
                       color: "#555",
-                      marginBottom: 8,
+                      marginBottom: 4,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -597,14 +616,14 @@ export default function Agentsotuv() {
                   </div>
                   <div
                     className="product-price"
-                    style={{ fontWeight: 600, marginBottom: 8 }}
+                    style={{ fontWeight: 600, marginBottom: isMobile ? 4 : 8 }}
                   >
                     {p.sell_price.toLocaleString()} so'm
                   </div>
                   <div
                     className="product-quantity"
                     style={{
-                      fontSize: "13px",
+                      fontSize: isMobile ? "12px" : "13px",
                       color: p.quantity > 0 ? "green" : "red",
                       fontWeight: 500,
                     }}
@@ -673,15 +692,15 @@ export default function Agentsotuv() {
         @media (max-width: 768px) {
           .search-filters { flex-direction: column !important; gap: 8px !important; }
           .search-input, .category-select { width: 100% !important; min-width: unset !important; flex: none !important; }
-          .products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+          .products-grid { grid-template-columns: 1fr !important; }
         }
 
         @media (max-width: 600px) {
-          .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .products-grid { grid-template-columns: 1fr !important; }
         }
 
         @media (max-width: 360px) {
-          .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .products-grid { grid-template-columns: 1fr !important; }
         }
       `,
         }}

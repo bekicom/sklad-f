@@ -1,6 +1,6 @@
 // pages/KassaPro.jsx
 import React, { useState } from "react";
-import { Layout, Button, Typography, Space, Drawer } from "antd";
+import { Layout, Button, Typography, Space, Drawer, Grid } from "antd";
 import {
   PlusCircleOutlined,
   TruckOutlined,
@@ -23,6 +23,8 @@ const { Title } = Typography;
 export default function KassaPro() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   // 🔑 Role olish
   const token = localStorage.getItem("token");
@@ -173,58 +175,196 @@ export default function KassaPro() {
       <Header
         style={{
           background: "#315ce9ff",
-          padding: "0 16px",
+          padding: isMobile ? "10px 12px 12px" : "0 16px",
           display: "flex",
-          alignItems: "center",
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "center",
           justifyContent: "space-between",
+          gap: isMobile ? 10 : 8,
+          height: "auto",
+          minHeight: isMobile ? "auto" : 64,
+          lineHeight: "normal",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Button
-            type="text"
-            icon={<MenuOutlined style={{ color: "white", fontSize: 20 }} />}
-            onClick={() => setOpen(true)}
-          />
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              backgroundColor: "#1890ff",
-              borderRadius: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontWeight: "bold",
-            }}
-          >
-            K
-          </div>
-          <Title level={5} style={{ margin: 0, color: "white" }}>
-            MAZZALI NUT HOUS
-          </Title>
-        </div>
+        {isMobile ? (
+          <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                minWidth: 0,
+                width: "100%",
+              }}
+            >
+              <Button
+                type="text"
+                icon={<MenuOutlined style={{ color: "white", fontSize: 20 }} />}
+                onClick={() => setOpen(true)}
+                style={{
+                  width: 42,
+                  height: 42,
+                  minWidth: 42,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 10,
+                  flex: "0 0 auto",
+                }}
+              />
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  backgroundColor: "#1890ff",
+                  borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontWeight: "bold",
+                  flex: "0 0 auto",
+                }}
+              >
+                K
+              </div>
+              <Title
+                level={5}
+                style={{
+                  margin: 0,
+                  color: "white",
+                  fontSize: 13,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  flex: "1 1 auto",
+                }}
+              >
+                MAZZALI NUT HOUS
+              </Title>
+            </div>
+            <Space
+              wrap
+              style={{
+                justifyContent: "flex-end",
+                width: "100%",
+                gap: 8,
+              }}
+            >
+              <Button
+                type="default"
+                icon={<ReloadOutlined />}
+                onClick={() => window.location.reload()}
+                style={{ flex: "1 1 0", minWidth: 0 }}
+              >
+                Yangilash
+              </Button>
+              <Button
+                type="primary"
+                danger
+                icon={<LogoutOutlined />}
+                onClick={handleLogout}
+                style={{ flex: "1 1 0", minWidth: 0 }}
+              >
+                Chiqish
+              </Button>
+            </Space>
+          </>
+        ) : (
+          <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                minWidth: 0,
+                flex: "1 1 auto",
+              }}
+            >
+              <Button
+                type="text"
+                icon={<MenuOutlined style={{ color: "white", fontSize: 20 }} />}
+                onClick={() => setOpen(true)}
+                style={{
+                  width: 42,
+                  height: 42,
+                  minWidth: 42,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 10,
+                }}
+              />
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  backgroundColor: "#1890ff",
+                  borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontWeight: "bold",
+                  flex: "0 0 auto",
+                }}
+              >
+                K
+              </div>
+              <Title
+                level={5}
+                style={{
+                  margin: 0,
+                  color: "white",
+                  fontSize: 18,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                MAZZALI NUT HOUS
+              </Title>
+            </div>
 
-        <Space>
-          <Button
-            type="default"
-            icon={<ReloadOutlined />}
-            onClick={() => window.location.reload()}
-          >
-            Yangilash
-          </Button>
-          <Button
-            type="primary"
-            danger
-            icon={<LogoutOutlined />}
-            onClick={handleLogout}
-          >
-            Chiqish
-          </Button>
-        </Space>
+            <Space
+              wrap
+              style={{
+                justifyContent: "flex-end",
+                width: "auto",
+                gap: 8,
+              }}
+            >
+              <Button
+                type="default"
+                icon={<ReloadOutlined />}
+                onClick={() => window.location.reload()}
+                style={{ minWidth: 104 }}
+              >
+                Yangilash
+              </Button>
+              <Button
+                type="primary"
+                danger
+                icon={<LogoutOutlined />}
+                onClick={handleLogout}
+                style={{ minWidth: 96 }}
+              >
+                Chiqish
+              </Button>
+            </Space>
+          </>
+        )}
       </Header>
 
-      <Content style={{ background: "#f5f5f5", padding: 16 }}>
+      <Content
+        style={{
+          background: "#f5f5f5",
+          padding: isMobile ? 8 : 16,
+          paddingTop: isMobile ? 12 : 16,
+        }}
+      >
         <Outlet />
       </Content>
 

@@ -9,6 +9,10 @@ import {
   Space,
   Tag,
   Popconfirm,
+  Grid,
+  Card,
+  Row,
+  Col,
 } from "antd";
 import {
   UserAddOutlined,
@@ -25,6 +29,8 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export default function Agent() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -112,7 +118,7 @@ export default function Agent() {
       title: "Amallar",
       key: "actions",
       render: (_, record) => (
-        <Space>
+        <Space wrap size={8}>
           {/* 🔹 Aktiv/deaktiv qilish */}
           <Popconfirm
             title={`Agentni ${
@@ -123,6 +129,7 @@ export default function Agent() {
             <Button
               type={record.is_active ? "default" : "primary"}
               loading={updating}
+              size="small"
             >
               {record.is_active ? "Disactive" : "Active"}
             </Button>
@@ -133,6 +140,7 @@ export default function Agent() {
             type="default"
             icon={<FileSearchOutlined />}
             onClick={() => navigate(`/kassa/agentlar/${record._id}/sales`)}
+            size="small"
           >
             Sotuvlar
           </Button>
@@ -142,6 +150,7 @@ export default function Agent() {
             type="primary"
             icon={<PrinterOutlined />}
             onClick={() => navigate(`/kassa/agentlar/${record._id}/orders`)}
+            size="small"
           >
             Zakazlar
           </Button>
@@ -153,7 +162,7 @@ export default function Agent() {
             cancelText="Bekor qilish"
             onConfirm={() => handleDelete(record)}
           >
-            <Button danger icon={<DeleteOutlined />} loading={deleting}>
+            <Button danger icon={<DeleteOutlined />} loading={deleting} size="small">
               Delete
             </Button>
           </Popconfirm>
@@ -163,27 +172,109 @@ export default function Agent() {
   ];
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Agentlar</h2>
+    <div
+      style={{
+        padding: isMobile ? 12 : 20,
+        maxWidth: 1440,
+        margin: "0 auto",
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: isMobile ? "stretch" : "center",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 10,
+          marginBottom: 16,
+        }}
+      >
+        <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24 }}>Agentlar</h2>
 
-      <Space style={{ marginBottom: 16 }}>
         <Button
           type="primary"
           icon={<UserAddOutlined />}
           onClick={showModal}
           loading={creating}
+          block={isMobile}
+          style={{ width: isMobile ? "100%" : "auto" }}
         >
           Agent qo‘shish
         </Button>
-      </Space>
+      </div>
 
-      <Table
-        loading={listLoading}
-        columns={columns}
-        dataSource={data?.agents || []}
-        rowKey="_id"
-        bordered
-      />
+      {isMobile ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          {(data?.agents || []).map((agent) => (
+            <Card
+              key={agent._id}
+              style={{ borderRadius: 12 }}
+              bodyStyle={{ padding: 14 }}
+            >
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <strong style={{ fontSize: 16 }}>{agent.name}</strong>
+                  {agent.is_active ? (
+                    <Tag color="green">Active</Tag>
+                  ) : (
+                    <Tag color="red">Inactive</Tag>
+                  )}
+                </div>
+                <div style={{ color: "#666" }}>📞 {agent.phone}</div>
+                <div style={{ color: "#666" }}>🔐 {agent.login}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <Popconfirm
+                    title={`Agentni ${agent.is_active ? "bloklash" : "aktivlashtirish"}ni tasdiqlaysizmi?`}
+                    onConfirm={() => toggleActive(agent)}
+                  >
+                    <Button size="small" loading={updating}>
+                      {agent.is_active ? "Disactive" : "Active"}
+                    </Button>
+                  </Popconfirm>
+                  <Button
+                    size="small"
+                    icon={<FileSearchOutlined />}
+                    onClick={() => navigate(`/kassa/agentlar/${agent._id}/sales`)}
+                  >
+                    Sotuvlar
+                  </Button>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<PrinterOutlined />}
+                    onClick={() => navigate(`/kassa/agentlar/${agent._id}/orders`)}
+                  >
+                    Zakazlar
+                  </Button>
+                  <Popconfirm
+                    title="Agentni o'chirasizmi?"
+                    description="Bu amalni ortga qaytarib bo'lmaydi."
+                    okText="Ha, o'chirish"
+                    cancelText="Bekor qilish"
+                    onConfirm={() => handleDelete(agent)}
+                  >
+                    <Button danger size="small" icon={<DeleteOutlined />} loading={deleting}>
+                      Delete
+                    </Button>
+                  </Popconfirm>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Table
+          loading={listLoading}
+          columns={columns}
+          dataSource={data?.agents || []}
+          rowKey="_id"
+          bordered
+          size="middle"
+          scroll={{ x: 900 }}
+          pagination={{ pageSize: 10, showSizeChanger: true }}
+        />
+      )}
 
       {/* ➕ Agent qo‘shish modal */}
       <Modal
@@ -195,6 +286,7 @@ export default function Agent() {
         cancelText="Bekor qilish"
         confirmLoading={creating}
         destroyOnClose
+        width={isMobile ? "95%" : 520}
       >
         <Form form={form} layout="vertical" name="agentForm">
           <Form.Item

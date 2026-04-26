@@ -12,6 +12,7 @@ import {
   Card,
   Statistic,
   Popconfirm,
+  Grid,
 } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -28,6 +29,9 @@ import {
 const { Title } = Typography;
 
 export default function Clients() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const {
     data: clients = [],
     isLoading,
@@ -233,18 +237,25 @@ export default function Clients() {
       title: "Amallar",
       width: 360,
       render: (_, record) => (
-        <Space wrap>
+        <Space wrap size={isMobile ? 6 : 8}>
           <Button
             type="primary"
             onClick={() => openPayModal(record)}
             disabled={!record.totalDebt || record.totalDebt <= 0}
+            block={isMobile}
           >
             To'lov
           </Button>
-          <Button onClick={() => openStatsModal(record)}>Statistika</Button>
-          <Button onClick={() => openHistoryModal(record)}>Tarix</Button>
-          <Button onClick={() => openImportsModal(record)}>Mahsulotlar</Button>
-          <Button type="primary" onClick={() => openAddModal(record)}>
+          <Button onClick={() => openStatsModal(record)} block={isMobile}>
+            Statistika
+          </Button>
+          <Button onClick={() => openHistoryModal(record)} block={isMobile}>
+            Tarix
+          </Button>
+          <Button onClick={() => openImportsModal(record)} block={isMobile}>
+            Mahsulotlar
+          </Button>
+          <Button type="primary" onClick={() => openAddModal(record)} block={isMobile}>
             Astatka
           </Button>
           <Popconfirm
@@ -287,15 +298,15 @@ export default function Clients() {
   ];
 
   return (
-    <div>
-      <Title level={3} style={{ marginBottom: 16 }}>
+    <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%" }}>
+      <Title level={isMobile ? 4 : 3} style={{ marginBottom: 16 }}>
         Yetkazuvchilar ro'yxati
       </Title>
 
       {/* Jami qarz statistikasi */}
       <div style={{ marginBottom: 24 }}>
-        <Space size="large" wrap>
-          <Card>
+        <Space size="large" wrap style={{ width: "100%" }}>
+          <Card style={{ width: isMobile ? "100%" : "auto" }}>
             <Statistic
               title="Jami qarz miqdori"
               value={totalDebt}
@@ -310,7 +321,7 @@ export default function Clients() {
               }
             />
           </Card>
-          <Card>
+          <Card style={{ width: isMobile ? "100%" : "auto" }}>
             <Statistic
               title="Qarzli mijozlar"
               value={debtorClientsCount}
@@ -326,7 +337,8 @@ export default function Clients() {
         columns={columns}
         dataSource={clients}
         loading={isLoading}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        size={isMobile ? "small" : "middle"}
+        pagination={{ pageSize: isMobile ? 5 : 10, showSizeChanger: !isMobile }}
         scroll={{ x: 1000 }}
       />
 
@@ -340,7 +352,7 @@ export default function Clients() {
         onCancel={closePayModal}
         cancelText="Bekor qilish"
         okButtonProps={{ disabled: !amountValid || !payNoteValid }}
-        width={600}
+        width={isMobile ? "95%" : 600}
         height={700}
       >
         <p>
@@ -352,7 +364,7 @@ export default function Clients() {
         <InputNumber
           value={amount}
           onChange={(val) => setAmount(typeof val === "number" ? val : null)}
-          style={{ width: "100%", height: 40, fontSize: 23 }}
+          style={{ width: "100%", height: 40, fontSize: isMobile ? 16 : 23 }}
           placeholder="To'lov summasini kiriting"
           min={1}
           max={selectedClient?.totalDebt || 0}
@@ -414,14 +426,14 @@ export default function Clients() {
         open={isStatsModalOpen}
         onCancel={() => setIsStatsModalOpen(false)}
         footer={null}
-        width={520}
+        width={isMobile ? "95%" : 520}
       >
         {statsLoading ? (
           <div style={{ textAlign: "center", padding: 20 }}>
             <Spin size="large" />
           </div>
         ) : stats ? (
-          <div style={{ fontSize: 16, lineHeight: 1.75 }}>
+          <div style={{ fontSize: isMobile ? 14 : 16, lineHeight: 1.75 }}>
             <p>
               📦 <strong>Partiyalar soni:</strong> {stats.partiesCount || 0}
             </p>
@@ -457,7 +469,7 @@ export default function Clients() {
         open={isHistoryModalOpen}
         onCancel={() => setIsHistoryModalOpen(false)}
         footer={null}
-        width={720}
+        width={isMobile ? "95%" : 720}
       >
         {paymentsLoading ? (
           <div style={{ textAlign: "center", padding: 20 }}>
@@ -520,6 +532,7 @@ export default function Clients() {
               rowKey={(record, idx) => `${record._id || record.date}-${idx}`}
               pagination={false}
               size="small"
+              scroll={{ x: 540 }}
             />
           </>
         ) : (
@@ -535,7 +548,7 @@ export default function Clients() {
         open={isImportsModalOpen}
         onCancel={() => setIsImportsModalOpen(false)}
         footer={null}
-        width={1200}
+        width={isMobile ? "95%" : 1200}
       >
         {importsLoading ? (
           <div style={{ textAlign: "center", padding: 20 }}>

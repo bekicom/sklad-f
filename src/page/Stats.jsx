@@ -10,6 +10,7 @@ import {
   Tag,
   Alert,
   Space,
+  Grid,
 } from "antd";
 import dayjs from "dayjs";
 import {
@@ -29,6 +30,9 @@ import { useGetAllCustomersQuery } from "../context/service/customer.service";
 const { RangePicker } = DatePicker;
 
 export default function Stats() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   // 🔧 Granulyatsiya: "day" | "month"
   const [granularity, setGranularity] = useState("day");
   // 🔧 Default: oxirgi 30 kun (UI holati)
@@ -222,7 +226,15 @@ export default function Stats() {
   };
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div
+      style={{
+        display: "grid",
+        gap: 12,
+        maxWidth: 1440,
+        margin: "0 auto",
+        width: "100%",
+      }}
+    >
       {Object.values(stats.product_details || {}).some(
         (p) => (p?.cost ?? 0) === 0,
       ) && (
@@ -236,18 +248,19 @@ export default function Stats() {
       )}
 
       {/* Filtrlar */}
-      <Space size={12} wrap>
+      <Space size={12} wrap style={{ width: "100%" }}>
         <RangePicker
           value={normalizedRange}
           onChange={handleRangeChange}
           allowClear={false}
           disabled={isFetching}
           presets={presets}
+          style={{ width: isMobile ? "100%" : 280 }}
         />
         <Select
           value={granularity}
           onChange={handleGranularityChange}
-          style={{ width: 160 }}
+          style={{ width: isMobile ? "100%" : 160 }}
           options={[
             { value: "day", label: "Kunlik" },
             { value: "month", label: "Oylik" },
@@ -257,7 +270,7 @@ export default function Stats() {
       </Space>
 
       {/* Statistik kartalar */}
-      <Row gutter={12}>
+      <Row gutter={[12, 12]}>
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card style={{ background: "#1890ff", borderRadius: 10 }}>
             <Statistic
@@ -444,6 +457,7 @@ export default function Stats() {
           rowKey="name"
           pagination={false}
           scroll={{ x: true }}
+          size={isMobile ? "small" : "middle"}
         />
       </Card>
     </div>
