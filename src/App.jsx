@@ -13,7 +13,7 @@ import Agentsotuv from "./page/Agentsotuv.jsx";
 import AgentSalesHistory from "./page/AgentSalesHistory.jsx";
 import AgentSalesDetail from "./page/AgentSalesDetail.jsx";
 import AgentOrders from "./page/AgentOrders.jsx";
-import { zaxidiHeroSrc } from "./utils/brandImages";
+import { ZaxidiHero } from "./components/Brand/ZaxidiBrand";
 
 export default function App() {
   const isAuthenticated = !!localStorage.getItem("token");
@@ -48,18 +48,16 @@ export default function App() {
               padding: 12,
             }}
           >
-            <img
-              src={zaxidiHeroSrc}
-              alt="ZAXIDI"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  maxWidth: 900,
-                  maxHeight: "100%",
-                  objectFit: "contain",
-                  objectPosition: "center",
-                }}
-              />
+            <ZaxidiHero
+              style={{
+                width: "100%",
+                height: "100%",
+                maxWidth: 900,
+                maxHeight: "100%",
+                objectFit: "contain",
+                objectPosition: "center",
+              }}
+            />
           </div>
         }
         />

@@ -5,7 +5,7 @@ import { useSignInMutation } from "../context/service/auth.service";
 import { useLoginAgentMutation } from "../context/service/agent.service";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { jwtDecode } from "jwt-decode";
-import { zaxidiLogoSrc } from "../utils/brandImages";
+import { ZaxidiLogo } from "../components/Brand/ZaxidiBrand";
 
 const { Title } = Typography;
 
@@ -120,9 +120,7 @@ export default function Login() {
         bodyStyle={{ padding: 40 }}
       >
         <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <img
-            src={zaxidiLogoSrc}
-            alt="ZAXIDI"
+          <ZaxidiLogo
             style={{
               width: "100%",
               maxWidth: 320,

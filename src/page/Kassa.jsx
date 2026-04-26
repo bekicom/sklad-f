@@ -16,7 +16,7 @@ import {
 } from "@ant-design/icons";
 import { Outlet, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { zaxidiLogoSrc } from "../utils/brandImages";
+import { ZaxidiLogo } from "../components/Brand/ZaxidiBrand";
 
 const { Header, Content } = Layout;
 
@@ -52,14 +52,11 @@ export default function KassaPro() {
         flex: "1 1 auto",
       }}
     >
-      <img
-        src={zaxidiLogoSrc}
-        alt="ZAXIDI"
+      <ZaxidiLogo
         style={{
           height: compact ? 34 : 42,
           width: "auto",
           display: "block",
-          objectFit: "contain",
           flex: "0 0 auto",
         }}
       />
