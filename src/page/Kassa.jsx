@@ -272,7 +272,7 @@ export default function KassaPro() {
               </div>
               <Space
                 align="center"
-                size={6}
+                size={12}
                 style={{ flex: "0 0 auto", marginLeft: "auto" }}
               >
                 <Button
@@ -280,9 +280,9 @@ export default function KassaPro() {
                   icon={<ReloadOutlined style={{ color: "white" }} />}
                   onClick={() => window.location.reload()}
                   style={{
-                    width: 38,
-                    height: 38,
-                    minWidth: 38,
+                    width: 40,
+                    height: 40,
+                    minWidth: 40,
                     color: "white",
                     background: "rgba(255,255,255,0.18)",
                     borderColor: "rgba(255,255,255,0.25)",
@@ -294,9 +294,9 @@ export default function KassaPro() {
                   icon={<LogoutOutlined />}
                   onClick={handleLogout}
                   style={{
-                    width: 38,
-                    height: 38,
-                    minWidth: 38,
+                    width: 40,
+                    height: 40,
+                    minWidth: 40,
                     paddingInline: 0,
                   }}
                 />
