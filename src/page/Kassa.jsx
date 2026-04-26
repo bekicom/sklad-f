@@ -16,6 +16,7 @@ import {
 } from "@ant-design/icons";
 import { Outlet, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import { zaxidiLogoSrc } from "../utils/brandImages";
 
 const { Header, Content } = Layout;
 
@@ -24,8 +25,6 @@ export default function KassaPro() {
   const [open, setOpen] = useState(false);
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const brandLogo = "/zaxidi-logo.svg";
-
   // 🔑 Role olish
   const token = localStorage.getItem("token");
   let role = "";
@@ -54,7 +53,7 @@ export default function KassaPro() {
       }}
     >
       <img
-        src={brandLogo}
+        src={zaxidiLogoSrc}
         alt="ZAXIDI"
         style={{
           height: compact ? 34 : 42,

@@ -1,5 +1,6 @@
 import React, { forwardRef, useMemo, useEffect } from "react";
 import { useGetCustomerSalesQuery } from "../../context/service/customer.service";
+import { zaxidiLogoSrc } from "../../utils/brandImages";
 
 const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
   const products = sale.products || sale.items || [];
@@ -291,7 +292,7 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                 }}
               >
                 <img
-                  src="/zaxidi-logo.svg"
+                  src={zaxidiLogoSrc}
                   alt="ZAXIDI"
                   style={{
                     height: "58px",
