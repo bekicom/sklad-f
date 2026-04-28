@@ -129,10 +129,9 @@ export default function AgentSalesHistory() {
   return (
     <div
       style={{
-        maxWidth: 1280,
-        margin: "0 auto",
         width: "100%",
-        padding: isMobile ? "4px 2px 12px" : 0,
+        boxSizing: "border-box",
+        padding: isMobile ? "4px 2px 12px" : "0 16px 12px",
       }}
     >
       <h2

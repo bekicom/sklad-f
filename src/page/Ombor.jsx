@@ -244,7 +244,7 @@ export default function Ombor() {
   console.log(clients);
 
   return (
-    <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%" }}>
+    <div style={{ width: "100%", boxSizing: "border-box", padding: isMobile ? 12 : 16 }}>
       <Space
         wrap
         style={{

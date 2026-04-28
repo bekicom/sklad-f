@@ -298,7 +298,7 @@ export default function Clients() {
   ];
 
   return (
-    <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%" }}>
+    <div style={{ width: "100%", boxSizing: "border-box", padding: isMobile ? 12 : 16 }}>
       <Title level={isMobile ? 4 : 3} style={{ marginBottom: 16 }}>
         Yetkazuvchilar ro'yxati
       </Title>

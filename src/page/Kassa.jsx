@@ -380,8 +380,8 @@ export default function KassaPro() {
       <Content
         style={{
           background: "#f5f5f5",
-          padding: isMobile ? 8 : 16,
-          paddingTop: isMobile ? 12 : 16,
+          padding: 0,
+          paddingTop: 0,
         }}
       >
         <Outlet />

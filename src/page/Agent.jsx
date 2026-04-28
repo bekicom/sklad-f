@@ -175,9 +175,8 @@ export default function Agent() {
     <div
       style={{
         padding: isMobile ? 12 : 20,
-        maxWidth: 1440,
-        margin: "0 auto",
         width: "100%",
+        boxSizing: "border-box",
       }}
     >
       <div

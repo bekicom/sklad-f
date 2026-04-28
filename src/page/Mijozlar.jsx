@@ -736,9 +736,9 @@ export default function Mijozlar() {
       style={{
         display: "grid",
         gap: 12,
-        maxWidth: 1440,
-        margin: "0 auto",
         width: "100%",
+        boxSizing: "border-box",
+        padding: isMobile ? 12 : 16,
       }}
     >
       <div
