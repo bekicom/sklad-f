@@ -11,6 +11,7 @@ import {
   message,
   Popconfirm,
   Grid,
+  Card,
 } from "antd";
 import dayjs from "dayjs";
 import { DeleteOutlined } from "@ant-design/icons";
@@ -731,6 +732,83 @@ export default function Mijozlar() {
     return;
   };
 
+  const renderCustomerActions = (record, mobile = false) => (
+    <Space
+      wrap
+      size={mobile ? 6 : 8}
+      style={{ width: mobile ? "100%" : "auto" }}
+    >
+      {record.totalDebt > 0 && (
+        <Button
+          type="primary"
+          size="small"
+          onClick={() =>
+            setPayModal({
+              open: true,
+              customer: record,
+              amount: null,
+              note: "",
+            })
+          }
+          block={mobile}
+        >
+          To'lov
+        </Button>
+      )}
+      <Button size="small" onClick={() => openStatsModal(record)} block={mobile}>
+        Statistika
+      </Button>
+      <Button size="small" onClick={() => openHistoryModal(record)} block={mobile}>
+        Tarix
+      </Button>
+      <Button size="small" onClick={() => openImportsModal(record)} block={mobile}>
+        Mahsulotlar
+      </Button>
+      <Button
+        type="primary"
+        size="small"
+        onClick={() => openAddModal(record)}
+        block={mobile}
+      >
+        Astatka
+      </Button>
+      <Button
+        size="small"
+        onClick={() =>
+          setEditModal({
+            open: true,
+            customer: record,
+            name: record.name || "",
+            phone: record.phone || "",
+            address: record.address || "",
+          })
+        }
+        block={mobile}
+      >
+        Tahrirlash
+      </Button>
+      <Popconfirm
+        title={`Mijoz "${record.name}" ni butunlay o'chirishni xohlaysizmi?`}
+        onConfirm={async () => {
+          try {
+            await deleteCustomer(record._id).unwrap();
+            message.success("Mijoz muvaffaqiyatli o'chirildi");
+            refetchClients();
+          } catch (err) {
+            console.error("Mijoz o'chirish xatosi:", err);
+            message.error(err?.data?.message || "O'chirishda xatolik yuz berdi");
+          }
+        }}
+        okText="Ha"
+        cancelText="Yo'q"
+      >
+        <Button danger icon={<DeleteOutlined />} size="small" block={mobile}>
+          O'chirish
+        </Button>
+      </Popconfirm>
+    </Space>
+  );
+
   return (
     <div
       style={{
@@ -748,9 +826,10 @@ export default function Mijozlar() {
           justifyContent: "space-between",
           alignItems: "center",
           gap: 10,
+          marginBottom: 12,
         }}
       >
-        <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24 }}>👥 Mijozlar</h2>
+        <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24 }}>👥 Dokonchilar</h2>
         <Input
           placeholder="Mijoz / telefon / manzil bo'yicha qidirish..."
           style={{ width: isMobile ? "100%" : 360 }}
@@ -759,26 +838,98 @@ export default function Mijozlar() {
           allowClear
         />
       </div>
-      <Table
-        loading={isLoading}
-        rowKey={(r) => r._id}
-        columns={columns}
-        dataSource={customers}
-        size={isMobile ? "small" : "middle"}
-        pagination={{ pageSize: isMobile ? 5 : 10, showSizeChanger: !isMobile }}
-        scroll={{ x: 980 }}
-        expandable={{
-          expandedRowRender: (record) => (
-            <div
-              style={{ background: "#f6ffed", padding: 12, borderRadius: 8 }}
+      {isMobile ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          {customers.map((record, index) => (
+            <Card
+              key={record._id || index}
+              style={{
+                borderRadius: 12,
+                border: "1px solid #f0f0f0",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.05)",
+              }}
+              bodyStyle={{ padding: 14 }}
             >
-              <CustomerSalesTable sales={record.sales} />
-            </div>
-          ),
-          rowExpandable: (record) =>
-            Array.isArray(record.sales) && record.sales.length > 0,
-        }}
-      />
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>
+                      {record.name}
+                    </div>
+                    <div style={{ color: "#666", fontSize: 12 }}>{record.phone}</div>
+                    <div style={{ color: "#666", fontSize: 12 }}>{record.address}</div>
+                  </div>
+                  <Tag color={record.totalDebt > 0 ? "red" : "green"}>
+                    {(record.totalDebt || 0).toLocaleString()} so'm
+                  </Tag>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ background: "#fafafa", borderRadius: 10, padding: 10 }}>
+                    <div style={{ color: "#666", fontSize: 12 }}>Jami olgan</div>
+                    <strong>{(record.totalPurchased || 0).toLocaleString()} so'm</strong>
+                  </div>
+                  <div style={{ background: "#fafafa", borderRadius: 10, padding: 10 }}>
+                    <div style={{ color: "#666", fontSize: 12 }}>To'lagan</div>
+                    <strong>{(record.totalPaid || 0).toLocaleString()} so'm</strong>
+                  </div>
+                </div>
+
+                {renderCustomerActions(record, true)}
+
+                {Array.isArray(record.sales) && record.sales.length > 0 && (
+                  <Button
+                    size="small"
+                    block
+                    onClick={() =>
+                      setHistoryModal({
+                        open: true,
+                        customer: record,
+                        history: record.sales.flatMap((s) =>
+                          (s.payment_history || []).map((h) => ({
+                            ...h,
+                            sale_note: s?.notes || "",
+                            sale_notes: s?.notes || "",
+                          })),
+                        ),
+                      })
+                    }
+                  >
+                    To'lov tarixi
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Table
+          loading={isLoading}
+          rowKey={(r) => r._id}
+          columns={columns}
+          dataSource={customers}
+          size="middle"
+          pagination={{ pageSize: 10, showSizeChanger: true }}
+          scroll={{ x: 980 }}
+          expandable={{
+            expandedRowRender: (record) => (
+              <div
+                style={{ background: "#f6ffed", padding: 12, borderRadius: 8 }}
+              >
+                <CustomerSalesTable sales={record.sales} />
+              </div>
+            ),
+            rowExpandable: (record) =>
+              Array.isArray(record.sales) && record.sales.length > 0,
+          }}
+        />
+      )}
 
       {/* To'lov qilish modali */}
       <Modal
