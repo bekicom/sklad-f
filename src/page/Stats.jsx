@@ -297,10 +297,10 @@ export default function Stats() {
       style={{
         display: "grid",
         gap: isMobile ? 10 : 12,
-        maxWidth: 1440,
-        margin: "0 auto",
         width: "100%",
-        paddingBottom: isMobile ? 18 : 0,
+        margin: 0,
+        padding: isMobile ? "0 0 18px" : "0 16px 18px",
+        boxSizing: "border-box",
       }}
     >
       {Object.values(stats.product_details || {}).some(
@@ -331,7 +331,7 @@ export default function Stats() {
           allowClear={false}
           disabled={isFetching}
           presets={presets}
-          style={{ width: "100%" }}
+          style={{ width: isMobile ? "100%" : 320 }}
         />
         <Select
           value={granularity}
@@ -352,7 +352,7 @@ export default function Stats() {
           gap: 12,
           gridTemplateColumns: isMobile
             ? "1fr"
-            : "repeat(auto-fit, minmax(220px, 1fr))",
+            : "repeat(auto-fit, minmax(200px, 1fr))",
         }}
       >
         {summaryCards.map((item) => {

@@ -298,15 +298,6 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                     display: "block",
                   }}
                 />
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "bold",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  ZAXIDI
-                </div>
               </div>
               ZAXIDI - SOTUV FAKTURASI
             </td>
