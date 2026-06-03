@@ -135,43 +135,43 @@ export default function Stats() {
       icon: DollarOutlined,
     },
     {
-      title: "Naqdga qilingan savdo",
+      title: "Naqd savdo",
       value: stats.cash_total,
       background: "#13c2c2",
       icon: WalletOutlined,
     },
     {
-      title: "Qarzga qilingan savdo",
+      title: "Qarz savdo",
       value: stats.debt_total,
       background: "#ff4d4f",
       icon: ExclamationCircleOutlined,
     },
     {
-      title: "Kartaga qilingan savdo",
+      title: "Karta savdo",
       value: stats.card_total,
       background: "#2f54eb",
       icon: CreditCardOutlined,
     },
     {
-      title: "Do'konchilarning mendan jami qarzi",
+      title: "Do'konchilar qarzi",
       value: totalCustomerDebt,
       background: "#cf1322",
       icon: ExclamationCircleOutlined,
     },
     {
-      title: "Ombordagi tovar jami summasi",
+      title: "Ombor qiymati",
       value: storeTotalAmount,
       background: "#08979c",
       icon: DollarOutlined,
     },
     {
-      title: "Tovar beruvchilardan jami qarzim",
+      title: "Yetkazuvchi qarzi",
       value: supplierDebtTotal,
       background: "#ad6800",
       icon: ExclamationCircleOutlined,
     },
     {
-      title: "Tovar beruvchiga to'langan pullar",
+      title: "Yetkazuvchiga to'lov",
       value: stats.supplier_payments_total,
       background: "#d46b08",
       icon: DollarOutlined,
@@ -184,7 +184,7 @@ export default function Stats() {
       suffix: "",
     },
     {
-      title: "Kechikkan foyda",
+      title: "Foyda",
       value: Math.abs(stats.total_profit),
       background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
       icon: stats.total_profit >= 0 ? RiseOutlined : FallOutlined,
@@ -192,6 +192,8 @@ export default function Stats() {
       formatter: (v) => Math.abs(v).toLocaleString(),
     },
   ];
+
+  const summaryColumns = isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))";
 
   const productCols = [
     { title: "Mahsulot", dataIndex: "name", key: "name" },
@@ -301,6 +303,8 @@ export default function Stats() {
         margin: 0,
         padding: isMobile ? "0 0 18px" : "0 16px 18px",
         boxSizing: "border-box",
+        overflowX: "hidden",
+        fontSize: isMobile ? 12 : 13,
       }}
     >
       {Object.values(stats.product_details || {}).some(
@@ -331,12 +335,12 @@ export default function Stats() {
           allowClear={false}
           disabled={isFetching}
           presets={presets}
-          style={{ width: isMobile ? "100%" : 320 }}
+          style={{ width: isMobile ? "100%" : 300 }}
         />
         <Select
           value={granularity}
           onChange={handleGranularityChange}
-          style={{ width: isMobile ? "100%" : 160 }}
+          style={{ width: isMobile ? "100%" : 150 }}
           options={[
             { value: "day", label: "Kunlik" },
             { value: "month", label: "Oylik" },
@@ -349,45 +353,63 @@ export default function Stats() {
       <div
         style={{
           display: "grid",
-          gap: 12,
-          gridTemplateColumns: isMobile
-            ? "1fr"
-            : "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: isMobile ? 10 : 14,
+          gridTemplateColumns: summaryColumns,
         }}
       >
         {summaryCards.map((item) => {
           const Icon = item.icon;
           return (
-            <Card
+          <Card
               key={item.title}
               style={{
                 background: item.background,
                 borderRadius: 12,
                 border: "none",
-                minHeight: isMobile ? 96 : 132,
+                minHeight: isMobile ? 92 : 128,
                 boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                overflow: "hidden",
               }}
               bodyStyle={{
-                padding: isMobile ? 14 : 18,
+                padding: isMobile ? 12 : 16,
                 height: "100%",
               }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  color: "#fff",
-                }}
               >
-                <Icon style={{ fontSize: isMobile ? 28 : 40, color: "#fff" }} />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: isMobile ? 10 : 14,
+                    color: "#fff",
+                  }}
+                >
+                <div
+                  style={{
+                    width: isMobile ? 40 : 48,
+                    height: isMobile ? 40 : 48,
+                    borderRadius: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(255,255,255,0.18)",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon style={{ fontSize: isMobile ? 22 : 24, color: "#fff" }} />
+                </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div
                     style={{
                       color: "rgba(255,255,255,0.92)",
-                      fontSize: isMobile ? 13 : 14,
+                      fontSize: isMobile ? 11 : 12,
+                      fontWeight: 600,
                       lineHeight: 1.2,
-                      marginBottom: 6,
+                      marginBottom: 8,
+                      minHeight: isMobile ? 26 : 32,
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 2,
+                      overflow: "hidden",
                     }}
                   >
                     {item.title}
@@ -396,8 +418,10 @@ export default function Stats() {
                     style={{
                       color: "#fff",
                       fontWeight: 800,
-                      fontSize: isMobile ? 22 : 30,
-                      lineHeight: 1.1,
+                      fontSize: isMobile ? 20 : 28,
+                      lineHeight: 1.05,
+                      letterSpacing: "-0.02em",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {item.formatter ? item.formatter(item.value) : money(item.value)}
@@ -411,7 +435,10 @@ export default function Stats() {
       </div>
 
       {/* Jadval */}
-      <Card title="Mahsulotlar bo'yicha statistika" loading={isFetching}>
+      <Card
+        title={<span style={{ fontSize: isMobile ? 13 : 14 }}>Mahsulotlar bo'yicha statistika</span>}
+        loading={isFetching}
+      >
         {isMobile ? (
           <div style={{ display: "grid", gap: 12 }}>
             {productData.length === 0 ? (
@@ -440,10 +467,10 @@ export default function Stats() {
                     }}
                   >
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>
                         {item.name}
                       </div>
-                      <div style={{ color: "#666", fontSize: 12 }}>
+                      <div style={{ color: "#666", fontSize: 11 }}>
                         Birlik: {item.unit || "-"}
                       </div>
                     </div>
@@ -460,25 +487,25 @@ export default function Stats() {
                     }}
                   >
                     <div style={{ background: "#f7f7f7", borderRadius: 10, padding: 10 }}>
-                      <div style={{ color: "#666", fontSize: 12 }}>Kirim</div>
+                      <div style={{ color: "#666", fontSize: 11 }}>Kirim</div>
                       <div style={{ fontWeight: 700 }}>
                         {money(item.revenue)} so'm
                       </div>
                     </div>
                     <div style={{ background: "#f7f7f7", borderRadius: 10, padding: 10 }}>
-                      <div style={{ color: "#666", fontSize: 12 }}>Xarajat</div>
+                      <div style={{ color: "#666", fontSize: 11 }}>Xarajat</div>
                       <div style={{ fontWeight: 700 }}>
                         {money(item.cost)} so'm
                       </div>
                     </div>
                     <div style={{ background: "#f7f7f7", borderRadius: 10, padding: 10 }}>
-                      <div style={{ color: "#666", fontSize: 12 }}>Foyda</div>
+                      <div style={{ color: "#666", fontSize: 11 }}>Foyda</div>
                       <div style={{ fontWeight: 700 }}>
                         {Math.abs(item.profit ?? 0).toLocaleString()} so'm
                       </div>
                     </div>
                     <div style={{ background: "#f7f7f7", borderRadius: 10, padding: 10 }}>
-                      <div style={{ color: "#666", fontSize: 12 }}>Foyda %</div>
+                      <div style={{ color: "#666", fontSize: 11 }}>Foyda %</div>
                       <div style={{ fontWeight: 700 }}>
                         {Math.abs(item.profit_percentage ?? 0).toFixed(1)}%
                       </div>
@@ -494,8 +521,8 @@ export default function Stats() {
             dataSource={productData}
             rowKey="name"
             pagination={false}
-            scroll={{ x: true }}
-            size="middle"
+            scroll={{ x: 1100 }}
+            size="small"
           />
         )}
       </Card>
