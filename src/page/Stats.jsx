@@ -184,7 +184,7 @@ export default function Stats() {
       suffix: "",
     },
     {
-      title: "Foyda",
+      title: "Kechikan qarz",
       value: Math.abs(stats.total_profit),
       background: stats.total_profit >= 0 ? "#006d75" : "#ff4d4f",
       icon: stats.total_profit >= 0 ? RiseOutlined : FallOutlined,
