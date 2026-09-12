@@ -46,6 +46,15 @@ export const expenseApi = apiSlice.injectEndpoints({
       invalidatesTags: ["Expenses", "Categories"],
     }),
 
+    updateExpense: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `api/expenses/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Expenses", "Categories"],
+    }),
+
     // Oxirgi xarajat
     getLastExpense: builder.query({
       query: () => ({
@@ -65,5 +74,6 @@ export const {
   useGetAllExpensesQuery,
   useGetExpenseByIdQuery,
   useCreateExpenseMutation,
+  useUpdateExpenseMutation,
   useGetLastExpenseQuery,
 } = expenseApi;

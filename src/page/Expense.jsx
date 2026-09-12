@@ -12,10 +12,12 @@ import {
   Grid,
 } from "antd";
 import dayjs from "dayjs";
+import { EditOutlined } from "@ant-design/icons";
 import {
   useGetCategoriesQuery,
   useCreateCategoryMutation,
   useCreateExpenseMutation,
+  useUpdateExpenseMutation,
 } from "../context/service/importApi.service";
 
 const { Title } = Typography;
@@ -39,6 +41,35 @@ export default function Expense() {
 
   const [categoryName, setCategoryName] = useState("");
   const [amount, setAmount] = useState(0);
+
+  // ✏️ Mavjud xarajatni tahrirlash
+  const [updateExpense, { isLoading: savingEdit }] = useUpdateExpenseMutation();
+  const [editing, setEditing] = useState(null); // { id, amount, note }
+
+  // Modal ochiq turganda refetch'dan keyin ro'yxat yangilanishi uchun
+  // selectedCategory ning eski nusxasini emas, yangi ma'lumotni ko'rsatamiz
+  const activeCategory =
+    categories.find((c) => c._id === selectedCategory?._id) || selectedCategory;
+
+  const handleUpdateExpense = async () => {
+    if (!editing?.id) return;
+    if (!editing.amount || editing.amount <= 0) {
+      message.error("Summa 0 dan katta bo‘lishi kerak.");
+      return;
+    }
+    try {
+      await updateExpense({
+        id: editing.id,
+        amount: editing.amount,
+        note: editing.note || "",
+      }).unwrap();
+      message.success("Xarajat yangilandi ✅");
+      setEditing(null);
+      refetch();
+    } catch (err) {
+      message.error(err?.data?.message || "Yangilashda xatolik ❌");
+    }
+  };
 
   // Kategoriya qo‘shish
   const handleCreateCategory = async () => {
@@ -194,7 +225,10 @@ export default function Expense() {
         open={isExpenseModal}
         onOk={handleCreateExpense}
         confirmLoading={creating}
-        onCancel={() => setIsExpenseModal(false)}
+        onCancel={() => {
+          setIsExpenseModal(false);
+          setEditing(null);
+        }}
         okText="Yangi qo‘shish"
         cancelText="Yopish"
         width={isMobile ? "95%" : 600}
@@ -211,25 +245,100 @@ export default function Expense() {
               marginBottom: 12,
             }}
           >
-            {selectedCategory?.expenses?.length > 0 ? (
-              <ul style={{ margin: 0, paddingLeft: 16 }}>
-                {selectedCategory.expenses.map((exp) => (
-                  <li
-                    key={exp._id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontSize: 17,
-                    }}
-                  >
-                    <strong>{exp.amount.toLocaleString("uz-UZ")} so‘m</strong>{" "}
-                    <span>{exp.note}</span>
-                    <span style={{ color: "black" }}>
-                      ({dayjs(exp.date).format("DD.MM.YYYY")})
-                    </span>
-                  </li>
-                ))}
+            {activeCategory?.expenses?.length > 0 ? (
+              <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                {activeCategory.expenses.map((exp, idx) => {
+                  const isEditing = editing?.id && editing.id === exp._id;
+
+                  if (isEditing) {
+                    return (
+                      <li
+                        key={exp._id || idx}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "6px 0",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <InputNumber
+                          value={editing.amount}
+                          onChange={(v) =>
+                            setEditing((p) => ({ ...p, amount: v || 0 }))
+                          }
+                          style={{ width: 140 }}
+                          step={1000}
+                          formatter={(value) =>
+                            value
+                              ? `${value}`.replace(
+                                  /\B(?=(\d{3})+(?!\d))/g,
+                                  ","
+                                )
+                              : ""
+                          }
+                          parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                        />
+                        <Input
+                          value={editing.note}
+                          onChange={(e) =>
+                            setEditing((p) => ({ ...p, note: e.target.value }))
+                          }
+                          placeholder="Sabab"
+                          style={{ width: 160 }}
+                        />
+                        <Button
+                          type="primary"
+                          size="small"
+                          loading={savingEdit}
+                          onClick={handleUpdateExpense}
+                        >
+                          Saqlash
+                        </Button>
+                        <Button size="small" onClick={() => setEditing(null)}>
+                          Bekor
+                        </Button>
+                      </li>
+                    );
+                  }
+
+                  return (
+                    <li
+                      key={exp._id || idx}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontSize: 17,
+                        padding: "6px 0",
+                      }}
+                    >
+                      <strong>{exp.amount.toLocaleString("uz-UZ")} so‘m</strong>{" "}
+                      <span>{exp.note}</span>
+                      <span style={{ color: "black" }}>
+                        ({dayjs(exp.date).format("DD.MM.YYYY")})
+                      </span>
+                      <Button
+                        size="small"
+                        icon={<EditOutlined />}
+                        style={{ marginLeft: "auto" }}
+                        disabled={!exp._id}
+                        title={
+                          exp._id
+                            ? "Tahrirlash"
+                            : "Bu eski yozuvda id yo‘q — tahrirlab bo‘lmaydi"
+                        }
+                        onClick={() =>
+                          setEditing({
+                            id: exp._id,
+                            amount: exp.amount,
+                            note: exp.note || "",
+                          })
+                        }
+                      />
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <span style={{ color: "#999" }}>Hozircha xarajat yo‘q</span>
