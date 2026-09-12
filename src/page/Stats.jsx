@@ -201,7 +201,7 @@ export default function Stats() {
       icon: CreditCardOutlined,
     },
     {
-      title: "Do'konchilar qarzi",
+      title: "Do'konchilarni qarzi",
       value: totalCustomerDebt,
       background: "#cf1322",
       icon: ExclamationCircleOutlined,
@@ -213,7 +213,7 @@ export default function Stats() {
       icon: DollarOutlined,
     },
     {
-      title: "Yetkazuvchi qarzi",
+      title: "Yetkazuvchilardan qarzim",
       value: supplierDebtTotal,
       background: "#ad6800",
       icon: ExclamationCircleOutlined,

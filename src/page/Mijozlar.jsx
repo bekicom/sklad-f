@@ -12,9 +12,15 @@ import {
   Popconfirm,
   Grid,
   Card,
+  Tooltip,
 } from "antd";
 import dayjs from "dayjs";
-import { DeleteOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  HistoryOutlined,
+  DollarOutlined,
+} from "@ant-design/icons";
 import {
   useGetCustomerSalesQuery,
   useDeleteCustomerMutation, // ✅ YANGI import
@@ -463,83 +469,74 @@ export default function Mijozlar() {
       width: 140,
     },
     {
-      title: "Tahrirlash",
-      key: "edit",
-      width: 120,
-        render: (_, record) => (
-          <Button
-            size="small"
-            onClick={() =>
-              setEditModal({
-                open: true,
-                customer: record,
-                name: record.name || "",
-                phone: record.phone || "",
-                address: record.address || "",
-              })
-            }
-          >
-            Tahrirlash
-          </Button>
-      ),
-    },
-    {
       title: "Amallar",
       key: "actions",
-      width: 200,
-      render: (_, record) => (
-        <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 8 }}>
+      width: 170,
+      render: (_, record) => {
+        const hasHistory = record.sales.some(
+          (s) =>
+            Array.isArray(s.payment_history) && s.payment_history.length > 0
+        );
+
+        return (
+          <Space size={4}>
             {record.totalDebt > 0 && (
-              <Button
-                type="primary"
-                size="small"
-                onClick={() =>
-                  setPayModal({
-                    open: true,
-                    customer: record,
-                    amount: null,
-                    note: "",
-                  })
-                }
-              >
-                To'lov
-              </Button>
+              <Tooltip title="To'lov">
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<DollarOutlined />}
+                  onClick={() =>
+                    setPayModal({
+                      open: true,
+                      customer: record,
+                      amount: null,
+                      note: "",
+                    })
+                  }
+                />
+              </Tooltip>
             )}
-          </div>
 
-          {record.sales.some(
-            (s) =>
-              Array.isArray(s.payment_history) && s.payment_history.length > 0
-          ) && (
-            <div
-              style={{
-                marginLeft: "auto",
-                display: "flex",
-                gap: 8,
-                alignItems: "center",
-              }}
-            >
+            <Tooltip title="Tahrirlash">
               <Button
                 size="small"
+                icon={<EditOutlined />}
                 onClick={() =>
-                  setHistoryModal({
+                  setEditModal({
                     open: true,
                     customer: record,
-                    history: record.sales.flatMap((s) =>
-                      (s.payment_history || []).map((h) => ({
-                        ...h,
-                        sale_note: s?.notes || "",
-                        sale_notes: s?.notes || "",
-                      })),
-                    ),
+                    name: record.name || "",
+                    phone: record.phone || "",
+                    address: record.address || "",
                   })
                 }
-              >
-                Tarix
-              </Button>
+              />
+            </Tooltip>
 
-              {/* ✅ YANGILANGAN DELETE BUTTON */}
+            {hasHistory && (
+              <Tooltip title="To'lovlar tarixi">
+                <Button
+                  size="small"
+                  icon={<HistoryOutlined />}
+                  onClick={() =>
+                    setHistoryModal({
+                      open: true,
+                      customer: record,
+                      history: record.sales.flatMap((s) =>
+                        (s.payment_history || []).map((h) => ({
+                          ...h,
+                          sale_note: s?.notes || "",
+                          sale_notes: s?.notes || "",
+                        })),
+                      ),
+                    })
+                  }
+                />
+              </Tooltip>
+            )}
+
+            {hasHistory && (
               <Popconfirm
                 title={`Mijoz "${record.name}" ni butunlay o'chirishni xohlaysizmi?`}
                 description="Bu mijozning barcha sotuvlari ham o'chiriladi!" // ✅ Ogohlantirish
@@ -637,12 +634,14 @@ export default function Mijozlar() {
                 cancelText="Bekor qilish"
                 okButtonProps={{ danger: true }}
               >
-                <Button size="small" danger icon={<DeleteOutlined />} />
+                <Tooltip title="O'chirish">
+                  <Button size="small" danger icon={<DeleteOutlined />} />
+                </Tooltip>
               </Popconfirm>
-            </div>
-          )}
-        </div>
-      ),
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
