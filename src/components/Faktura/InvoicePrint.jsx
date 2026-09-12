@@ -221,6 +221,13 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
     return m === "card" || m === "karta" ? "Karta" : "Naqd";
   };
   const paymentLabel = getPaymentMethodLabel(paymentMethod, debtAmount);
+  // Qarz — qizil, naqd/karta — yashil. Printerda ham chiqishi uchun exact.
+  const paymentLabelStyle = {
+    color: paymentLabel === "Qarz" ? "#c0392b" : "#1e8449",
+    fontWeight: "bold",
+    WebkitPrintColorAdjust: "exact",
+    printColorAdjust: "exact",
+  };
 
   const formatDate = (d) =>
     new Date(d).toLocaleString("uz-UZ", {
@@ -344,7 +351,8 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                 <strong>Manzili:</strong> {sale.customer.address || "-"}
               </td>
               <td style={cellStyle}>
-                <strong>To'lov:</strong> {paymentLabel}
+                <strong>To'lov:</strong>{" "}
+                <span style={paymentLabelStyle}>{paymentLabel}</span>
               </td>
             </tr>
           )}
@@ -590,7 +598,7 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
             <td style={cellStyle}>
               <strong>To'lov usuli:</strong>
             </td>
-            <td style={{ ...numberStyle, fontWeight: "bold" }}>
+            <td style={{ ...numberStyle, ...paymentLabelStyle }}>
               {paymentLabel}
             </td>
           </tr>
