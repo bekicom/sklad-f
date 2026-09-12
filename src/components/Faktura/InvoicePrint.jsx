@@ -378,6 +378,21 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
             const unit = item.unit ? ` ${item.unit}` : "";
             const currency = item.currency === "USD" ? "$" : "so'm";
 
+            // 🔴 Chegirma: ombordagi standart narxdan past sotilgan bo'lsa
+            const originalPrice = Number(item.original_price || 0);
+            const isDiscounted =
+              item.is_discounted ?? (originalPrice > 0 && price < originalPrice);
+            const discountAmount = Number(
+              item.discount_amount ||
+                (isDiscounted ? (originalPrice - price) * qty : 0)
+            );
+            // Qizil rang printerda ham chiqsin
+            const redStyle = {
+              color: "#c0392b",
+              WebkitPrintColorAdjust: "exact",
+              printColorAdjust: "exact",
+            };
+
             return (
               <tr key={idx}>
                 <td style={numberStyle}>{idx + 1}</td>
@@ -398,11 +413,42 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                   {qty % 1 === 0 ? fmt(qty) : qty.toFixed(1)}
                   {unit}
                 </td>
-                <td style={numberStyle}>
-                  {fmt(price)} {currency}
+                <td style={isDiscounted ? { ...numberStyle, ...redStyle } : numberStyle}>
+                  <span style={isDiscounted ? { fontWeight: "bold" } : undefined}>
+                    {fmt(price)} {currency}
+                  </span>
+                  {isDiscounted && (
+                    <>
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "#666",
+                          textDecoration: "line-through",
+                        }}
+                      >
+                        {fmt(originalPrice)} {currency}
+                      </div>
+                      <div style={{ fontSize: "10px", ...redStyle }}>
+                        narx pasaytirildi
+                      </div>
+                    </>
+                  )}
                 </td>
-                <td style={{ ...numberStyle, fontWeight: "bold" }}>
+                <td
+                  style={
+                    isDiscounted
+                      ? { ...numberStyle, fontWeight: "bold", ...redStyle }
+                      : { ...numberStyle, fontWeight: "bold" }
+                  }
+                >
                   {fmt(itemTotal)} {currency}
+                  {isDiscounted && discountAmount > 0 && (
+                    <div
+                      style={{ fontSize: "10px", fontWeight: "normal", ...redStyle }}
+                    >
+                      −{fmt(discountAmount)} {currency}
+                    </div>
+                  )}
                 </td>
                 <td style={numberStyle}>
                   {fmt(getPrevDebtForItem(item))} so'm
