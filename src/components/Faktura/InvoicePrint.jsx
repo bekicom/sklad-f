@@ -228,6 +228,13 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
     WebkitPrintColorAdjust: "exact",
     printColorAdjust: "exact",
   };
+  // To'langan summa: 0 dan katta bo'lsa yashil, 0 bo'lsa qizil
+  const paidStyle = {
+    color: paidAmount > 0 ? "#1e8449" : "#c0392b",
+    fontWeight: "bold",
+    WebkitPrintColorAdjust: "exact",
+    printColorAdjust: "exact",
+  };
 
   const formatDate = (d) =>
     new Date(d).toLocaleString("uz-UZ", {
@@ -522,8 +529,8 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
             </tr>
           )}
           <tr style={{ backgroundColor: "#f0f0f0" }}>
-            <td style={{ ...cellStyle, fontWeight: "bold" }}>To'langan:</td>
-            <td style={{ ...numberStyle, fontWeight: "bold" }}>
+            <td style={{ ...cellStyle, ...paidStyle }}>To'langan:</td>
+            <td style={{ ...numberStyle, ...paidStyle }}>
               {fmt(paidAmount)} so'm
             </td>
           </tr>
