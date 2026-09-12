@@ -70,6 +70,15 @@ export default function Stats() {
   const { data: storeItems = [] } = useGetAllStoreItemsQuery();
   const { data: customers = [] } = useGetAllCustomersQuery();
 
+  // 📅 Bugungi kun — yuqoridagi sana filtridan mustaqil
+  const todayStr = dayjs().format("YYYY-MM-DD");
+  const { data: todayData, isFetching: isTodayFetching } =
+    useGetSalesStatsQuery({
+      granularity: "day",
+      from: todayStr,
+      to: todayStr,
+    });
+
   const stats = data?.stats || {
     total_sales_count: 0,
     total_revenue: 0,
@@ -126,6 +135,45 @@ export default function Stats() {
       })
     );
   }, [stats.product_details]);
+
+  // 🗓 Bugun sotilgan tovarlar: nomi, miqdori va necha pulga sotilgani
+  const todayProducts = useMemo(() => {
+    const details = todayData?.stats?.product_details || {};
+    return Object.entries(details)
+      .map(([name, d]) => ({
+        name,
+        quantity_sold: Number(d?.quantity_sold) || 0,
+        unit: d?.unit || "dona",
+        revenue: Number(d?.revenue) || 0,
+      }))
+      .filter((row) => row.quantity_sold > 0 || row.revenue > 0)
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [todayData]);
+
+  const todayTotal = useMemo(
+    () => todayProducts.reduce((sum, row) => sum + row.revenue, 0),
+    [todayProducts]
+  );
+
+  const todayCols = [
+    { title: "Mahsulot", dataIndex: "name", key: "name" },
+    {
+      title: "Sotilgan miqdor",
+      dataIndex: "quantity_sold",
+      key: "quantity_sold",
+      align: "right",
+      render: (v, row) => `${(v ?? 0).toLocaleString()} ${row.unit}`,
+    },
+    {
+      title: "Summa",
+      dataIndex: "revenue",
+      key: "revenue",
+      align: "right",
+      render: (v) => (
+        <span style={{ fontWeight: 700 }}>{money(v)} so'm</span>
+      ),
+    },
+  ];
 
   const summaryCards = [
     {
@@ -525,6 +573,43 @@ export default function Stats() {
             size="small"
           />
         )}
+      </Card>
+
+      {/* 🗓 Bugun sotilgan tovarlar — sana filtridan mustaqil */}
+      <Card
+        title={
+          <span style={{ fontSize: isMobile ? 13 : 14 }}>
+            Bugun sotilgan tovarlar ({dayjs().format("DD.MM.YYYY")})
+          </span>
+        }
+        extra={
+          <span style={{ fontWeight: 700, fontSize: isMobile ? 12 : 14 }}>
+            Jami: {money(todayTotal)} so'm
+          </span>
+        }
+        loading={isTodayFetching}
+      >
+        <Table
+          columns={todayCols}
+          dataSource={todayProducts}
+          rowKey="name"
+          pagination={false}
+          size="small"
+          locale={{ emptyText: "Bugun hali sotuv bo'lmagan" }}
+          summary={() =>
+            todayProducts.length > 0 ? (
+              <Table.Summary.Row style={{ background: "#fafafa" }}>
+                <Table.Summary.Cell index={0}>
+                  <b>Jami</b>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right" />
+                <Table.Summary.Cell index={2} align="right">
+                  <b>{money(todayTotal)} so'm</b>
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            ) : null
+          }
+        />
       </Card>
     </div>
   );
