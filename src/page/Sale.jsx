@@ -585,7 +585,9 @@ export default function Sale() {
                       fontSize: isMobile ? "14px" : "24px",
                       fontWeight: "bold",
                       marginBottom: 2,
-                      lineHeight: "20px",
+                      // Shriftga nisbatan lineHeight — aks holda g/q/y ning dumi qirqiladi
+                      lineHeight: 1.35,
+                      paddingBottom: 2,
                       color: "#1677ff",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
