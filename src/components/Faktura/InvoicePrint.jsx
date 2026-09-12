@@ -378,17 +378,27 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
             const unit = item.unit ? ` ${item.unit}` : "";
             const currency = item.currency === "USD" ? "$" : "so'm";
 
-            // 🔴 Chegirma: ombordagi standart narxdan past sotilgan bo'lsa
+            // Ombordagi standart narxdan farq: past bo'lsa qizil, yuqori bo'lsa yashil
             const originalPrice = Number(item.original_price || 0);
             const isDiscounted =
               item.is_discounted ?? (originalPrice > 0 && price < originalPrice);
-            const discountAmount = Number(
-              item.discount_amount ||
-                (isDiscounted ? (originalPrice - price) * qty : 0)
+            const isIncreased =
+              item.is_increased ?? (originalPrice > 0 && price > originalPrice);
+            const priceChanged = isDiscounted || isIncreased;
+            const diffAmount = Number(
+              isDiscounted
+                ? item.discount_amount || (originalPrice - price) * qty
+                : isIncreased
+                ? item.increase_amount || (price - originalPrice) * qty
+                : 0
             );
-            // Qizil rang printerda ham chiqsin
-            const redStyle = {
-              color: "#c0392b",
+            const diffSign = isDiscounted ? "−" : "+";
+            const diffLabel = isDiscounted
+              ? "narx pasaytirildi"
+              : "narx oshirildi";
+            // Rang printerda ham chiqsin
+            const changeStyle = {
+              color: isDiscounted ? "#c0392b" : "#1e8449",
               WebkitPrintColorAdjust: "exact",
               printColorAdjust: "exact",
             };
@@ -413,11 +423,17 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                   {qty % 1 === 0 ? fmt(qty) : qty.toFixed(1)}
                   {unit}
                 </td>
-                <td style={isDiscounted ? { ...numberStyle, ...redStyle } : numberStyle}>
-                  <span style={isDiscounted ? { fontWeight: "bold" } : undefined}>
+                <td
+                  style={
+                    priceChanged
+                      ? { ...numberStyle, ...changeStyle }
+                      : numberStyle
+                  }
+                >
+                  <span style={priceChanged ? { fontWeight: "bold" } : undefined}>
                     {fmt(price)} {currency}
                   </span>
-                  {isDiscounted && (
+                  {priceChanged && (
                     <>
                       <div
                         style={{
@@ -428,25 +444,30 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                       >
                         {fmt(originalPrice)} {currency}
                       </div>
-                      <div style={{ fontSize: "10px", ...redStyle }}>
-                        narx pasaytirildi
+                      <div style={{ fontSize: "10px", ...changeStyle }}>
+                        {diffLabel}
                       </div>
                     </>
                   )}
                 </td>
                 <td
                   style={
-                    isDiscounted
-                      ? { ...numberStyle, fontWeight: "bold", ...redStyle }
+                    priceChanged
+                      ? { ...numberStyle, fontWeight: "bold", ...changeStyle }
                       : { ...numberStyle, fontWeight: "bold" }
                   }
                 >
                   {fmt(itemTotal)} {currency}
-                  {isDiscounted && discountAmount > 0 && (
+                  {priceChanged && diffAmount > 0 && (
                     <div
-                      style={{ fontSize: "10px", fontWeight: "normal", ...redStyle }}
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: "normal",
+                        ...changeStyle,
+                      }}
                     >
-                      −{fmt(discountAmount)} {currency}
+                      {diffSign}
+                      {fmt(diffAmount)} {currency}
                     </div>
                   )}
                 </td>
