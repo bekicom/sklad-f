@@ -445,7 +445,7 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                       {fmt(originalPrice)} {currency}
                     </div>
                   )}
-                  {priceChanged && (
+                  {isDiscounted && (
                     <div style={{ fontSize: "10px", ...changeStyle }}>
                       {diffLabel}
                     </div>
@@ -459,7 +459,7 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                   }
                 >
                   {fmt(itemTotal)} {currency}
-                  {priceChanged && diffAmount > 0 && (
+                  {isDiscounted && diffAmount > 0 && (
                     <div
                       style={{
                         fontSize: "10px",
