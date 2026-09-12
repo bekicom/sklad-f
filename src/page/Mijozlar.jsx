@@ -479,7 +479,7 @@ export default function Mijozlar() {
         );
 
         return (
-          <Space size={4}>
+          <Space size={10}>
             {record.totalDebt > 0 && (
               <Tooltip title="To'lov">
                 <Button
