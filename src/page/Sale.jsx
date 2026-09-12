@@ -567,11 +567,13 @@ export default function Sale() {
                     cursor: isAvailable(p) ? "pointer" : "not-allowed",
                     transition: "all 0.2s ease",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    height: isMobile ? "122px" : "160px",
+                    // Ichidagi matn (nom + model + narx + miqdor) ~135px joy talab
+                    // qiladi, shuning uchun balandlik va padding shunga moslangan
+                    height: isMobile ? "122px" : "170px",
                     width: "100%",
                   }}
                   bodyStyle={{
-                    padding: isMobile ? 10 : 20,
+                    padding: isMobile ? 10 : 12,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -588,6 +590,8 @@ export default function Sale() {
                       // Shriftga nisbatan lineHeight — aks holda g/q/y ning dumi qirqiladi
                       lineHeight: 1.35,
                       paddingBottom: 2,
+                      // Flex ichida siqilmasin, aks holda overflow dumlarni kesadi
+                      flexShrink: 0,
                       color: "#1677ff",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -605,6 +609,7 @@ export default function Sale() {
                         color: "#555",
                         marginBottom: 4,
                         fontWeight: 500,
+                        flexShrink: 0,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
