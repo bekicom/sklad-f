@@ -471,7 +471,7 @@ export default function Mijozlar() {
     {
       title: "Amallar",
       key: "actions",
-      width: 170,
+      width: 330,
       render: (_, record) => {
         const hasHistory = record.sales.some(
           (s) =>
@@ -479,61 +479,61 @@ export default function Mijozlar() {
         );
 
         return (
-          <Space size={10}>
+          <Space size={10} wrap>
             {record.totalDebt > 0 && (
-              <Tooltip title="To'lov">
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<DollarOutlined />}
-                  onClick={() =>
-                    setPayModal({
-                      open: true,
-                      customer: record,
-                      amount: null,
-                      note: "",
-                    })
-                  }
-                />
-              </Tooltip>
-            )}
-
-            <Tooltip title="Tahrirlash">
               <Button
+                type="primary"
                 size="small"
-                icon={<EditOutlined />}
+                icon={<DollarOutlined />}
                 onClick={() =>
-                  setEditModal({
+                  setPayModal({
                     open: true,
                     customer: record,
-                    name: record.name || "",
-                    phone: record.phone || "",
-                    address: record.address || "",
+                    amount: null,
+                    note: "",
                   })
                 }
-              />
-            </Tooltip>
+              >
+                To'lov
+              </Button>
+            )}
+
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() =>
+                setEditModal({
+                  open: true,
+                  customer: record,
+                  name: record.name || "",
+                  phone: record.phone || "",
+                  address: record.address || "",
+                })
+              }
+            >
+              Tahrirlash
+            </Button>
 
             {hasHistory && (
-              <Tooltip title="To'lovlar tarixi">
-                <Button
-                  size="small"
-                  icon={<HistoryOutlined />}
-                  onClick={() =>
-                    setHistoryModal({
-                      open: true,
-                      customer: record,
-                      history: record.sales.flatMap((s) =>
-                        (s.payment_history || []).map((h) => ({
-                          ...h,
-                          sale_note: s?.notes || "",
-                          sale_notes: s?.notes || "",
-                        })),
-                      ),
-                    })
-                  }
-                />
-              </Tooltip>
+              <Button
+                size="small"
+                icon={<HistoryOutlined />}
+                onClick={() =>
+                  setHistoryModal({
+                    open: true,
+                    customer: record,
+                    history: record.sales.flatMap((s) =>
+                      (s.payment_history || []).map((h) => ({
+                        ...h,
+                        sale_note: s?.notes || "",
+                        sale_notes: s?.notes || "",
+                      })),
+                    ),
+                  })
+                }
+              >
+                Tarix
+              </Button>
             )}
 
             {hasHistory && (
