@@ -11,6 +11,8 @@ import {
   message,
   Popconfirm,
   Grid,
+  Form,
+  Input,
 } from "antd";
 import Createombor from "../components/Createomor/Createombor";
 import {
@@ -18,7 +20,10 @@ import {
   useUpdateStoreItemMutation,
   useDeleteStoreItemMutation,
 } from "../context/service/store.service";
-import { useGetClientsQuery } from "../context/service/client.service";
+import {
+  useGetClientsQuery,
+  useUpdateClientMutation,
+} from "../context/service/client.service";
 
 export default function Ombor() {
   const screens = Grid.useBreakpoint();
@@ -29,6 +34,13 @@ export default function Ombor() {
   const { data: clients = [], refetch: refetchClients } = useGetClientsQuery();
   const [supplierModalOpen, setSupplierModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
+
+  // ✏️ Yetkazib beruvchi ma'lumotlarini tahrirlash
+  const [supplierEditOpen, setSupplierEditOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState(null);
+  const [supplierForm] = Form.useForm();
+  const [updateClient, { isLoading: isSavingSupplier }] =
+    useUpdateClientMutation();
 
   const usd_rate = 12600;
 
@@ -63,6 +75,48 @@ export default function Ombor() {
     } catch (err) {
       console.error(err);
       message.error("Mahsulotni o'chirishda xatolik yuz berdi");
+    }
+  };
+
+  // ✏️ Yetkazib beruvchi: ism, telefon, manzilni tahrirlash
+  const openSupplierEdit = (supplier) => {
+    if (!supplier?._id) {
+      message.error("Yetkazib beruvchi topilmadi");
+      return;
+    }
+    // Ombordagi populate qisqartirilgan bo'lishi mumkin — to'liq yozuvni
+    // clients ro'yxatidan olamiz, aks holda manzil saqlashda o'chib ketadi.
+    const full = clients.find((c) => c?._id === supplier._id) || supplier;
+    // Qiymatlar Form ning initialValues orqali beriladi (modal destroyOnClose)
+    setEditingSupplier(full);
+    setSupplierEditOpen(true);
+  };
+
+  const handleSupplierSave = async () => {
+    try {
+      const values = await supplierForm.validateFields();
+      await updateClient({
+        id: editingSupplier._id,
+        name: values.name.trim(),
+        phone: values.phone.trim(),
+        address: (values.address || "").trim(),
+      }).unwrap();
+
+      message.success("Yetkazib beruvchi ma'lumotlari yangilandi");
+      setSupplierEditOpen(false);
+      setEditingSupplier(null);
+      // Ombor jadvalidagi nom/telefon ham yangilansin
+      refetch();
+      refetchClients();
+    } catch (err) {
+      if (err?.errorFields) return; // forma validatsiyasi
+      console.error(err);
+      const msg = err?.data?.message;
+      message.error(
+        msg?.includes("duplicate") || err?.status === 11000
+          ? "Bu telefon raqami boshqa yetkazib beruvchida bor"
+          : msg || "Saqlashda xatolik yuz berdi"
+      );
     }
   };
 
@@ -188,6 +242,19 @@ export default function Ombor() {
         clients
           .find((c) => c?._id === v?.supplier?._id)
           ?.totalDebt?.toLocaleString(),
+    },
+    {
+      title: "Amallar",
+      width: 110,
+      render: (_, r) => (
+        <Button
+          size="small"
+          onClick={() => openSupplierEdit(r.supplier)}
+          style={{ fontSize: 12 }}
+        >
+          ✏️ Tahrirlash
+        </Button>
+      ),
     },
   ];
 
@@ -322,7 +389,20 @@ export default function Ombor() {
       />
 
       <Modal
-        title={`${selectedSupplier?.supplier?.name} (${selectedSupplier?.supplier?.phone})`}
+        title={
+          <Space wrap>
+            <span>
+              {selectedSupplier?.supplier?.name} (
+              {selectedSupplier?.supplier?.phone})
+            </span>
+            <Button
+              size="small"
+              onClick={() => openSupplierEdit(selectedSupplier?.supplier)}
+            >
+              ✏️ Tahrirlash
+            </Button>
+          </Space>
+        }
         open={supplierModalOpen}
         onCancel={() => setSupplierModalOpen(false)}
         footer={null}
@@ -365,6 +445,51 @@ export default function Ombor() {
           }}
           pagination={false}
         />
+      </Modal>
+
+      {/* ✏️ Yetkazib beruvchi ma'lumotlarini tahrirlash */}
+      <Modal
+        title="Yetkazib beruvchi ma'lumotlari"
+        open={supplierEditOpen}
+        onCancel={() => {
+          setSupplierEditOpen(false);
+          setEditingSupplier(null);
+        }}
+        onOk={handleSupplierSave}
+        okText="Saqlash"
+        cancelText="Bekor qilish"
+        confirmLoading={isSavingSupplier}
+        width={isMobile ? "95%" : 480}
+        destroyOnClose
+      >
+        <Form
+          form={supplierForm}
+          layout="vertical"
+          preserve={false}
+          initialValues={{
+            name: editingSupplier?.name || "",
+            phone: editingSupplier?.phone || "",
+            address: editingSupplier?.address || "",
+          }}
+        >
+          <Form.Item
+            name="name"
+            label="Ismi"
+            rules={[{ required: true, message: "Ism kiritilishi shart" }]}
+          >
+            <Input placeholder="Yetkazib beruvchi nomi" />
+          </Form.Item>
+          <Form.Item
+            name="phone"
+            label="Telefon raqami"
+            rules={[{ required: true, message: "Telefon kiritilishi shart" }]}
+          >
+            <Input placeholder="+998..." />
+          </Form.Item>
+          <Form.Item name="address" label="Manzil">
+            <Input placeholder="Manzil (majburiy emas)" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

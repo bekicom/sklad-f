@@ -39,7 +39,8 @@ export const clientApi = apiSlice.injectEndpoints({
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: ["Clients", "Customers"],
+      // Ombor jadvali supplier_id ni populate qilib ko'rsatadi — u ham yangilansin
+      invalidatesTags: ["Clients", "Customers", "Store"],
     }),
 
     // 📌 Mijozni o'chirish
