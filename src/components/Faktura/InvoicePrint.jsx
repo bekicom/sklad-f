@@ -433,21 +433,22 @@ const InvoicePrint = forwardRef(({ sale = {}, onPrintStart }, ref) => {
                   <span style={priceChanged ? { fontWeight: "bold" } : undefined}>
                     {fmt(price)} {currency}
                   </span>
+                  {/* Chizilgan asl narx faqat pasaytirilganda ko'rsatiladi */}
+                  {isDiscounted && (
+                    <div
+                      style={{
+                        fontSize: "10px",
+                        color: "#666",
+                        textDecoration: "line-through",
+                      }}
+                    >
+                      {fmt(originalPrice)} {currency}
+                    </div>
+                  )}
                   {priceChanged && (
-                    <>
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          color: "#666",
-                          textDecoration: "line-through",
-                        }}
-                      >
-                        {fmt(originalPrice)} {currency}
-                      </div>
-                      <div style={{ fontSize: "10px", ...changeStyle }}>
-                        {diffLabel}
-                      </div>
-                    </>
+                    <div style={{ fontSize: "10px", ...changeStyle }}>
+                      {diffLabel}
+                    </div>
                   )}
                 </td>
                 <td
