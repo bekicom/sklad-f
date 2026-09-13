@@ -917,6 +917,9 @@ export default function AgentOrders() {
               paid_amount: invoiceData.invoice.payment.paid_amount,
               remaining_debt: invoiceData.invoice.payment.remaining_debt,
               payment_method: invoiceData.invoice.payment.payment_method,
+              // Oldingi va jami qarz shu obyektda keladi — busiz fakturada
+              // faqat joriy zakaz summasi ko'rinadi
+              payment: invoiceData.invoice.payment,
               check_number: invoiceData.invoice.check_number,
               invoice_number: invoiceData.invoice.invoice_number,
               customer: invoiceData.invoice.customer,
