@@ -25,35 +25,55 @@ export default function AgentSalesHistory() {
     dayjs().startOf("day"),
     dayjs().endOf("day"),
   ]);
+  // 🔴 "Qarzga qilingan savdo" kartasi bosilganda yoqiladi
+  const [debtOnly, setDebtOnly] = useState(false);
 
-  const filteredSales = useMemo(() => {
+  const isDebtSale = (s) => s.payment_method === "qarz";
+
+  const dateFilteredSales = useMemo(() => {
     if (!dateRange || dateRange.length !== 2) return sales;
     const [from, to] = dateRange;
     if (!from || !to) return sales;
-    const start = dayjs(from).startOf("day");
-    const end = dayjs(to).endOf("day");
+    const start = dayjs(from).startOf("day").valueOf();
+    const end = dayjs(to).endOf("day").valueOf();
 
     return sales.filter((s) => {
-      const d = dayjs(s.createdAt);
-      return d.isAfter(start) || d.isSame(start);
-    }).filter((s) => {
-      const d = dayjs(s.createdAt);
-      return d.isBefore(end) || d.isSame(end);
+      const t = dayjs(s.createdAt).valueOf();
+      return t >= start && t <= end;
     });
   }, [sales, dateRange]);
 
+  // Kartalardagi summalar sana bo'yicha, jadval esa qo'shimcha qarz filtri bilan
+  const filteredSales = useMemo(
+    () => (debtOnly ? dateFilteredSales.filter(isDebtSale) : dateFilteredSales),
+    [dateFilteredSales, debtOnly]
+  );
+
+  // 🧾 Mijozlar ro'yxati — ustun filtri uchun (faqat mavjudlari)
+  const customerFilters = useMemo(() => {
+    const map = new Map();
+    for (const s of dateFilteredSales) {
+      const id = String(s.customer_id?._id || s.customer_id || "");
+      if (!id) continue;
+      if (!map.has(id)) map.set(id, s.customer_id?.name || "Noma'lum");
+    }
+    return [...map.entries()]
+      .map(([value, text]) => ({ text, value }))
+      .sort((a, b) => String(a.text).localeCompare(String(b.text)));
+  }, [dateFilteredSales]);
+
   const periodSummary = useMemo(() => {
-    const total = filteredSales.reduce(
+    const total = dateFilteredSales.reduce(
       (sum, s) => sum + Number(s.total_amount || 0),
       0
     );
-    const debtSales = filteredSales.filter((s) => s.payment_method === "qarz");
+    const debtSales = dateFilteredSales.filter(isDebtSale);
     const debtTotal = debtSales.reduce(
       (sum, s) => sum + Number(s.total_amount || 0),
       0
     );
     return { total, debtTotal, debtCount: debtSales.length };
-  }, [filteredSales]);
+  }, [dateFilteredSales]);
 
   const periodLabel = useMemo(() => {
     if (!dateRange || dateRange.length !== 2 || !dateRange[0] || !dateRange[1]) {
@@ -71,11 +91,69 @@ export default function AgentSalesHistory() {
       key: "createdAt",
       render: (d) => dayjs(d).format("DD.MM.YYYY HH:mm"),
       width: 160,
+      sorter: (a, b) =>
+        dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf(),
+      // 📅 Sana bo'yicha filtr — ustun sarlavhasidagi belgidan ochiladi
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => {
+        const parts = selectedKeys[0] ? String(selectedKeys[0]).split("|") : [];
+        const value =
+          parts.length === 2 ? [dayjs(parts[0]), dayjs(parts[1])] : null;
+        return (
+          <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
+            <RangePicker
+              value={value}
+              format="DD.MM.YYYY"
+              onChange={(vals) =>
+                setSelectedKeys(
+                  vals && vals[0] && vals[1]
+                    ? [`${vals[0].toISOString()}|${vals[1].toISOString()}`]
+                    : []
+                )
+              }
+              style={{ width: 260 }}
+            />
+            <Space style={{ marginTop: 8, display: "flex" }}>
+              <Button type="primary" size="small" onClick={() => confirm()}>
+                Qo‘llash
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  clearFilters?.();
+                  confirm();
+                }}
+              >
+                Tozalash
+              </Button>
+            </Space>
+          </div>
+        );
+      },
+      onFilter: (value, record) => {
+        const [from, to] = String(value).split("|");
+        if (!from || !to) return true;
+        const t = dayjs(record.createdAt).valueOf();
+        return (
+          t >= dayjs(from).startOf("day").valueOf() &&
+          t <= dayjs(to).endOf("day").valueOf()
+        );
+      },
     },
     {
       title: "Mijoz",
       dataIndex: ["customer_id", "name"],
       key: "customer",
+      // 👥 Mijozlarni belgilab, "OK" bosiladi — faqat o'shalar qoladi
+      filters: customerFilters,
+      filterSearch: true,
+      onFilter: (value, record) =>
+        String(record.customer_id?._id || record.customer_id || "") ===
+        String(value),
       render: (_, r) => (
         <Space direction="vertical" size={0}>
           <b>{r.customer_id?.name || "Nomalum"}</b>
@@ -90,6 +168,18 @@ export default function AgentSalesHistory() {
       dataIndex: "payment_method",
       key: "payment_method",
       width: 100,
+      // 💳 Naqd / Karta / Qarz
+      filters: [
+        { text: "Naqd", value: "cash" },
+        { text: "Karta", value: "card" },
+        { text: "Qarz", value: "qarz" },
+      ],
+      onFilter: (value, record) => {
+        const m = record.payment_method;
+        // Jadvalda "Naqd" deb ko'rsatiladigan hamma narsa shu guruhga kiradi
+        if (value === "cash") return m !== "qarz" && m !== "card";
+        return m === value;
+      },
       render: (m) => {
         const color = m === "qarz" ? "red" : m === "card" ? "blue" : "green";
         const label = m === "qarz" ? "Qarz" : m === "card" ? "Karta" : "Naqd";
@@ -190,10 +280,14 @@ export default function AgentSalesHistory() {
         }}
       >
         <Card
+          hoverable
+          onClick={() => setDebtOnly(false)}
           style={{
             borderRadius: 12,
-            border: "1px solid #b7eb8f",
+            border: debtOnly ? "1px solid #b7eb8f" : "2px solid #52c41a",
             background: "#f6ffed",
+            cursor: "pointer",
+            boxShadow: debtOnly ? undefined : "0 0 0 3px rgba(82,196,26,0.12)",
           }}
           bodyStyle={{ padding: 16 }}
         >
@@ -203,13 +297,20 @@ export default function AgentSalesHistory() {
           <div style={{ fontSize: 28, fontWeight: 700, color: "#135200" }}>
             {periodSummary.total.toLocaleString()} so'm
           </div>
+          <div style={{ marginTop: 6, fontSize: 12, color: "#389e0d" }}>
+            {debtOnly ? "Bosing — barcha savdolar" : "✓ Barcha savdolar"}
+          </div>
         </Card>
 
         <Card
+          hoverable
+          onClick={() => setDebtOnly(true)}
           style={{
             borderRadius: 12,
-            border: "1px solid #ffccc7",
+            border: debtOnly ? "2px solid #cf1322" : "1px solid #ffccc7",
             background: "#fff1f0",
+            cursor: "pointer",
+            boxShadow: debtOnly ? "0 0 0 3px rgba(207,19,34,0.12)" : undefined,
           }}
           bodyStyle={{ padding: 16 }}
         >
@@ -222,6 +323,11 @@ export default function AgentSalesHistory() {
           <div style={{ marginTop: 6, fontSize: 13, color: "#cf1322" }}>
             {periodSummary.debtCount} ta sotuv
           </div>
+          <div style={{ marginTop: 2, fontSize: 12, color: "#cf1322" }}>
+            {debtOnly
+              ? "✓ Jadvalda faqat qarzlar"
+              : "Bosing — faqat qarzlarni ko‘rish"}
+          </div>
         </Card>
       </div>
       <Table
@@ -230,6 +336,14 @@ export default function AgentSalesHistory() {
         columns={columns}
         dataSource={filteredSales}
         size={isMobile ? "small" : "middle"}
+        locale={{
+          filterConfirm: "Qo‘llash",
+          filterReset: "Tozalash",
+          filterSearchPlaceholder: "Qidirish",
+          emptyText: debtOnly
+            ? "Bu davrda qarzga qilingan savdo yo‘q"
+            : "Ma’lumot yo‘q",
+        }}
         pagination={{
           pageSize: isMobile ? 5 : 10,
           showSizeChanger: false,
