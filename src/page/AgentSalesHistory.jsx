@@ -28,7 +28,21 @@ export default function AgentSalesHistory() {
   // 🔴 "Qarzga qilingan savdo" kartasi bosilganda yoqiladi
   const [debtOnly, setDebtOnly] = useState(false);
 
-  const isDebtSale = (s) => s.payment_method === "qarz";
+  // Qarz — to'lov usuli emas, haqiqiy qoldiq bo'yicha aniqlanadi.
+  // Qisman to'langan sotuv ham qarz bo'lib qolaveradi.
+  const isDebtSale = (s) => Number(s.remaining_debt) > 0;
+
+  // To'lov holati: qoldiq va to'langan summaga qarab
+  const paymentInfo = (s) => {
+    const debt = Number(s.remaining_debt) || 0;
+    const paid = Number(s.paid_amount) || 0;
+    if (debt > 0 && paid > 0)
+      return { key: "partial", label: "Qisman", color: "orange" };
+    if (debt > 0) return { key: "qarz", label: "Qarz", color: "red" };
+    if (s.payment_method === "card")
+      return { key: "card", label: "Karta", color: "blue" };
+    return { key: "cash", label: "Naqd", color: "green" };
+  };
 
   const dateFilteredSales = useMemo(() => {
     if (!dateRange || dateRange.length !== 2) return sales;
@@ -68,8 +82,9 @@ export default function AgentSalesHistory() {
       0
     );
     const debtSales = dateFilteredSales.filter(isDebtSale);
+    // Sotuv summasi emas, aynan qolgan qarz qo'shiladi
     const debtTotal = debtSales.reduce(
-      (sum, s) => sum + Number(s.total_amount || 0),
+      (sum, s) => sum + Number(s.remaining_debt || 0),
       0
     );
     return { total, debtTotal, debtCount: debtSales.length };
@@ -168,21 +183,16 @@ export default function AgentSalesHistory() {
       dataIndex: "payment_method",
       key: "payment_method",
       width: 100,
-      // 💳 Naqd / Karta / Qarz
+      // 💳 Jadvalda ko'rinadigan holat bo'yicha filtr
       filters: [
         { text: "Naqd", value: "cash" },
         { text: "Karta", value: "card" },
         { text: "Qarz", value: "qarz" },
+        { text: "Qisman", value: "partial" },
       ],
-      onFilter: (value, record) => {
-        const m = record.payment_method;
-        // Jadvalda "Naqd" deb ko'rsatiladigan hamma narsa shu guruhga kiradi
-        if (value === "cash") return m !== "qarz" && m !== "card";
-        return m === value;
-      },
-      render: (m) => {
-        const color = m === "qarz" ? "red" : m === "card" ? "blue" : "green";
-        const label = m === "qarz" ? "Qarz" : m === "card" ? "Karta" : "Naqd";
+      onFilter: (value, record) => paymentInfo(record).key === value,
+      render: (_, record) => {
+        const { label, color } = paymentInfo(record);
         return <Tag color={color}>{label}</Tag>;
       },
     },
@@ -315,7 +325,7 @@ export default function AgentSalesHistory() {
           bodyStyle={{ padding: 16 }}
         >
           <div style={{ fontSize: 14, color: "#a8071a", marginBottom: 8 }}>
-            Qarzga qilingan savdo
+            Qolgan qarz
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#820014" }}>
             {periodSummary.debtTotal.toLocaleString()} so'm
@@ -325,8 +335,8 @@ export default function AgentSalesHistory() {
           </div>
           <div style={{ marginTop: 2, fontSize: 12, color: "#cf1322" }}>
             {debtOnly
-              ? "✓ Jadvalda faqat qarzlar"
-              : "Bosing — faqat qarzlarni ko‘rish"}
+              ? "✓ Jadvalda faqat qarzi qolganlar"
+              : "Bosing — faqat qarzi qolganlarni ko‘rish"}
           </div>
         </Card>
       </div>
@@ -341,7 +351,7 @@ export default function AgentSalesHistory() {
           filterReset: "Tozalash",
           filterSearchPlaceholder: "Qidirish",
           emptyText: debtOnly
-            ? "Bu davrda qarzga qilingan savdo yo‘q"
+            ? "Bu davrda qarzi qolgan savdo yo‘q"
             : "Ma’lumot yo‘q",
         }}
         pagination={{

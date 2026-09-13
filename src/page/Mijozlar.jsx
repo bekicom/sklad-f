@@ -315,10 +315,14 @@ export default function Mijozlar() {
         dataIndex: "payment_method",
         key: "payment_method",
         width: 110,
-        render: (m) => {
-          const c = m === "qarz" ? "red" : m === "card" ? "blue" : "green";
-          const label = m === "qarz" ? "Qarz" : m === "card" ? "Karta" : "Naqd";
-          return <Tag color={c}>{label}</Tag>;
+        render: (m, rec) => {
+          // Qisman to'langan sotuv "Naqd" bo'lib ko'rinmasligi kerak
+          const debt = Number(rec?.remaining_debt) || 0;
+          const paid = Number(rec?.paid_amount) || 0;
+          if (debt > 0 && paid > 0) return <Tag color="orange">Qisman</Tag>;
+          if (debt > 0) return <Tag color="red">Qarz</Tag>;
+          if (m === "card") return <Tag color="blue">Karta</Tag>;
+          return <Tag color="green">Naqd</Tag>;
         },
       },
       {
