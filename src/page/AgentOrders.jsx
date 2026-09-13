@@ -527,20 +527,32 @@ export default function AgentOrders() {
     {
       title: "💰 Summa",
       key: "amounts",
-      render: (_, record) => (
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontWeight: "bold", fontSize: "14px" }}>
-            {(record.total_amount || 0).toLocaleString()} so'm
-          </div>
-          {record.remaining_debt > 0 && (
-            <div style={{ fontSize: "12px", color: "red" }}>
-              Qarz: {record.remaining_debt.toLocaleString()} so'm
+      render: (_, record) => {
+        // Mijozning umumiy qarzi — bu zakaznikigina emas, hammasi qo'shilgan
+        const customerDebt = Number(record.customer_id?.totalDebt) || 0;
+
+        return (
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: "bold", fontSize: "14px" }}>
+              {(record.total_amount || 0).toLocaleString()} so'm
             </div>
-          )}
-        </div>
-      ),
+            {record.remaining_debt > 0 && (
+              <div style={{ fontSize: "12px", color: "red" }}>
+                Qarz: {record.remaining_debt.toLocaleString()} so'm
+              </div>
+            )}
+            {customerDebt > 0 && (
+              <div
+                style={{ fontSize: "12px", color: "#c0392b", fontWeight: 600 }}
+              >
+                Jami qarz: {customerDebt.toLocaleString()} so'm
+              </div>
+            )}
+          </div>
+        );
+      },
       sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
-      width: 130,
+      width: 160,
     },
     {
       title: "📊 Status",
@@ -887,6 +899,19 @@ export default function AgentOrders() {
                 {record.remaining_debt > 0 && (
                   <div style={{ fontSize: "14px", color: "red", marginTop: 4 }}>
                     📝 Qarz: {record.remaining_debt.toLocaleString()} so'm
+                  </div>
+                )}
+                {Number(record.customer_id?.totalDebt) > 0 && (
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      color: "#c0392b",
+                      fontWeight: 600,
+                      marginTop: 4,
+                    }}
+                  >
+                    📌 Jami qarz:{" "}
+                    {Number(record.customer_id.totalDebt).toLocaleString()} so'm
                   </div>
                 )}
               </div>
