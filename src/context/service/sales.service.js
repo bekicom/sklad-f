@@ -99,9 +99,13 @@ export const salesApi = apiSlice.injectEndpoints({
         method: "PUT",
         body: data,
       }),
+      // Tahrirlash ombor qoldig'i va mijoz balansini ham o'zgartiradi
       invalidatesTags: (r, e, { id }) => [
         { type: "Sales", id },
         { type: "Sales", id: "LIST" },
+        "Store",
+        "Customers",
+        "Debtor",
       ],
     }),
 

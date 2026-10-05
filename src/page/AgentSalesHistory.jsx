@@ -1,9 +1,27 @@
 // pages/AgentSalesHistory.jsx
 import React, { useMemo, useState } from "react";
-import { Table, Tag, Space, Card, DatePicker, Button, Grid } from "antd";
+import {
+  Table,
+  Tag,
+  Space,
+  Card,
+  DatePicker,
+  Button,
+  Grid,
+  Modal,
+  InputNumber,
+  Popconfirm,
+  message,
+  Tooltip,
+} from "antd";
+import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import { useGetSalesQuery } from "../context/service/sales.service";
+import {
+  useGetSalesQuery,
+  useUpdateSaleMutation,
+  useDeleteSaleMutation,
+} from "../context/service/sales.service";
 const { RangePicker } = DatePicker;
 
 export default function AgentSalesHistory() {
@@ -27,6 +45,92 @@ export default function AgentSalesHistory() {
   ]);
   // 🔴 "Qarzga qilingan savdo" kartasi bosilganda yoqiladi
   const [debtOnly, setDebtOnly] = useState(false);
+
+  // ✏️ Sotuvni tahrirlash
+  const [updateSale, { isLoading: saving }] = useUpdateSaleMutation();
+  const [deleteSale] = useDeleteSaleMutation();
+  const [editSale, setEditSale] = useState(null); // { _id, lines: [...], paid }
+
+  // Backenddagi qoida bilan bir xil: chek chiqarilgan yoki sotuvdan keyin
+  // qarz to'lovi olingan bo'lsa, agent tegina olmaydi
+  const lockReason = (s) => {
+    if (s?.print_status === "printed") return "Chek chiqarilgan";
+    const created = new Date(s?.createdAt).getTime();
+    const later = (s?.payment_history || []).some(
+      (h) => new Date(h?.date).getTime() - created > 60 * 1000
+    );
+    if (later) return "Qarz to‘lovi olingan";
+    return null;
+  };
+
+  const openEdit = (s) => {
+    setEditSale({
+      _id: s._id,
+      invoice: s.invoice_number,
+      customer: s.customer_id?.name || "",
+      paid: Number(s.paid_amount) || 0,
+      lines: (s.products || []).map((p) => ({
+        product_id: p.product_id?._id || p.product_id,
+        name: p.name,
+        unit: p.unit,
+        quantity: Number(p.quantity) || 0,
+        price: Number(p.price) || 0,
+      })),
+    });
+  };
+
+  const editTotal = useMemo(
+    () =>
+      (editSale?.lines || []).reduce(
+        (sum, l) => sum + Number(l.quantity || 0) * Number(l.price || 0),
+        0
+      ),
+    [editSale]
+  );
+
+  const setLine = (idx, patch) =>
+    setEditSale((prev) => ({
+      ...prev,
+      lines: prev.lines.map((l, i) => (i === idx ? { ...l, ...patch } : l)),
+    }));
+
+  const handleSaveEdit = async () => {
+    const lines = (editSale?.lines || []).filter((l) => Number(l.quantity) > 0);
+    if (!lines.length) {
+      message.error("Kamida bitta mahsulot qolishi kerak.");
+      return;
+    }
+    if (Number(editSale.paid) > editTotal) {
+      message.error("To‘langan summa sotuv summasidan katta bo‘lmasin.");
+      return;
+    }
+    try {
+      await updateSale({
+        id: editSale._id,
+        data: {
+          products: lines.map((l) => ({
+            product_id: l.product_id,
+            quantity: Number(l.quantity),
+            price: Number(l.price),
+          })),
+          paid_amount: Number(editSale.paid) || 0,
+        },
+      }).unwrap();
+      message.success("Sotuv yangilandi ✅");
+      setEditSale(null);
+    } catch (err) {
+      message.error(err?.data?.message || "Saqlashda xatolik ❌");
+    }
+  };
+
+  const handleDelete = async (s) => {
+    try {
+      await deleteSale(s._id).unwrap();
+      message.success("Sotuv o‘chirildi");
+    } catch (err) {
+      message.error(err?.data?.message || "O‘chirishda xatolik ❌");
+    }
+  };
 
   // Qarz — to'lov usuli emas, haqiqiy qoldiq bo'yicha aniqlanadi.
   // Qisman to'langan sotuv ham qarz bo'lib qolaveradi.
@@ -224,6 +328,45 @@ export default function AgentSalesHistory() {
       ),
       width: 140,
     },
+    {
+      title: "Amallar",
+      key: "actions",
+      width: 120,
+      fixed: isMobile ? undefined : "right",
+      render: (_, record) => {
+        const locked = lockReason(record);
+        if (locked) {
+          return (
+            <Tooltip title={`${locked} — o‘zgartirib bo‘lmaydi`}>
+              <Tag color="default">🔒 {locked}</Tag>
+            </Tooltip>
+          );
+        }
+        return (
+          <Space size={8}>
+            <Tooltip title="Tahrirlash">
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => openEdit(record)}
+              />
+            </Tooltip>
+            <Popconfirm
+              title="Sotuvni o‘chirish"
+              description="Mahsulotlar omborga qaytariladi. Davom etasizmi?"
+              okText="Ha, o‘chir"
+              cancelText="Bekor"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => handleDelete(record)}
+            >
+              <Tooltip title="O‘chirish">
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Tooltip>
+            </Popconfirm>
+          </Space>
+        );
+      },
+    },
   ];
 
   return (
@@ -373,6 +516,130 @@ export default function AgentSalesHistory() {
           ),
         }}
       />
+
+      {/* ✏️ Sotuvni tahrirlash */}
+      <Modal
+        title={`Sotuvni tahrirlash — ${editSale?.customer || ""}`}
+        open={!!editSale}
+        onCancel={() => setEditSale(null)}
+        onOk={handleSaveEdit}
+        okText="Saqlash"
+        cancelText="Bekor qilish"
+        confirmLoading={saving}
+        width={isMobile ? "95%" : 620}
+        destroyOnClose
+      >
+        <div style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>
+          {editSale?.invoice}
+        </div>
+
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          {(editSale?.lines || []).map((l, idx) => (
+            <div
+              key={idx}
+              style={{
+                border: "1px solid #f0f0f0",
+                borderRadius: 8,
+                padding: 10,
+                background: Number(l.quantity) > 0 ? "#fff" : "#fff1f0",
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>
+                {l.name}
+                {Number(l.quantity) <= 0 && (
+                  <Tag color="red" style={{ marginLeft: 8 }}>
+                    o‘chiriladi
+                  </Tag>
+                )}
+              </div>
+              <Space wrap size={8}>
+                <span style={{ fontSize: 12, color: "#666" }}>Miqdor:</span>
+                <InputNumber
+                  min={0}
+                  step={1}
+                  value={l.quantity}
+                  onChange={(v) => setLine(idx, { quantity: v ?? 0 })}
+                  style={{ width: 110 }}
+                  addonAfter={l.unit}
+                />
+                <span style={{ fontSize: 12, color: "#666" }}>Narx:</span>
+                <InputNumber
+                  min={0}
+                  step={1000}
+                  value={l.price}
+                  onChange={(v) => setLine(idx, { price: v ?? 0 })}
+                  style={{ width: 140 }}
+                  formatter={(v) =>
+                    v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : ""
+                  }
+                  parser={(v) => (v || "").replace(/\s/g, "")}
+                />
+              </Space>
+              <div style={{ marginTop: 6, fontSize: 13 }}>
+                ={" "}
+                <b>
+                  {(
+                    Number(l.quantity || 0) * Number(l.price || 0)
+                  ).toLocaleString()}{" "}
+                  so'm
+                </b>
+              </div>
+            </div>
+          ))}
+
+          <div
+            style={{
+              borderTop: "1px solid #f0f0f0",
+              paddingTop: 10,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              alignItems: "center",
+            }}
+          >
+            <span>To‘langan:</span>
+            <InputNumber
+              min={0}
+              step={1000}
+              value={editSale?.paid}
+              onChange={(v) =>
+                setEditSale((prev) => ({ ...prev, paid: v ?? 0 }))
+              }
+              style={{ width: 150 }}
+              formatter={(v) =>
+                v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : ""
+              }
+              parser={(v) => (v || "").replace(/\s/g, "")}
+            />
+            <div style={{ marginLeft: "auto", textAlign: "right" }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>
+                Jami: {editTotal.toLocaleString()} so'm
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color:
+                    editTotal - Number(editSale?.paid || 0) > 0
+                      ? "#cf1322"
+                      : "#389e0d",
+                }}
+              >
+                Qarz:{" "}
+                {Math.max(
+                  editTotal - Number(editSale?.paid || 0),
+                  0
+                ).toLocaleString()}{" "}
+                so'm
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 12, color: "#888" }}>
+            Miqdorni 0 qilsangiz, o‘sha mahsulot sotuvdan chiqariladi. Ombor
+            qoldig‘i va mijoz qarzi avtomatik to‘g‘rilanadi.
+          </div>
+        </Space>
+      </Modal>
     </div>
   );
 }
