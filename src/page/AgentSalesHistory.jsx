@@ -34,7 +34,7 @@ export default function AgentSalesHistory() {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   // Statik message React 19 da hech narsa ko'rsatmaydi — kontekstdagisi ishlaydi
-  const { message } = AntdApp.useApp();
+  const { message, modal } = AntdApp.useApp();
 
   // 🔑 Token ichidan agent ID olish
   const token = localStorage.getItem("token");
@@ -173,12 +173,6 @@ export default function AgentSalesHistory() {
   const removeLine = (idx) =>
     setEditSale((prev) => {
       if (!prev) return prev;
-      if (prev.lines.length <= 1) {
-        message.warning(
-          "Oxirgi mahsulotni o‘chirib bo‘lmaydi — sotuvni butunlay o‘chiring."
-        );
-        return prev;
-      }
       const lines = prev.lines.filter((_, i) => i !== idx);
       const total = lines.reduce(
         (sum, l) => sum + Number(l.quantity || 0) * Number(l.price || 0),
@@ -212,8 +206,26 @@ export default function AgentSalesHistory() {
 
   const handleSaveEdit = async () => {
     const lines = (editSale?.lines || []).filter((l) => Number(l.quantity) > 0);
+
+    // Mahsulot qolmasa — bu sotuvni butunlay bekor qilish demak
     if (!lines.length) {
-      message.error("Kamida bitta mahsulot qolishi kerak.");
+      modal.confirm({
+        title: "Sotuvda mahsulot qolmadi",
+        content:
+          "Butun sotuv o‘chirilsinmi? Mahsulotlar omborga qaytariladi va mijoz qarzi to‘g‘rilanadi.",
+        okText: "Ha, sotuvni o‘chir",
+        cancelText: "Bekor qilish",
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          try {
+            await deleteSale(editSale._id).unwrap();
+            setEditSale(null);
+            message.success("Sotuv o‘chirildi");
+          } catch (err) {
+            message.error(err?.data?.message || "O‘chirishda xatolik ❌");
+          }
+        },
+      });
       return;
     }
     // Jamidan oshib ketgan to'lov yangi summagacha qisqartiriladi
@@ -728,6 +740,25 @@ export default function AgentSalesHistory() {
             </div>
             );
           })}
+
+          {(editSale?.lines || []).length === 0 && (
+            <div
+              style={{
+                border: "1px dashed #ffccc7",
+                borderRadius: 8,
+                padding: 14,
+                textAlign: "center",
+                color: "#cf1322",
+                background: "#fff1f0",
+              }}
+            >
+              Mahsulot qolmadi — saqlasangiz butun sotuv o‘chiriladi.
+              <br />
+              <span style={{ color: "#888", fontSize: 12 }}>
+                Yoki pastdan mahsulot qo‘shing.
+              </span>
+            </div>
+          )}
 
           {/* ➕ Sotuvga yangi mahsulot qo'shish */}
           <Select
