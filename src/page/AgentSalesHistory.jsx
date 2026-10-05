@@ -11,7 +11,7 @@ import {
   Modal,
   InputNumber,
   Popconfirm,
-  message,
+  App as AntdApp,
   Tooltip,
 } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
@@ -27,22 +27,34 @@ const { RangePicker } = DatePicker;
 export default function AgentSalesHistory() {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  // Statik message React 19 da hech narsa ko'rsatmaydi — kontekstdagisi ishlaydi
+  const { message } = AntdApp.useApp();
 
   // 🔑 Token ichidan agent ID olish
   const token = localStorage.getItem("token");
   const agentId = token ? JSON.parse(atob(token.split(".")[1]))?.agentId : null;
 
-  // 🛒 Faqat shu agent sotuvlari
-  const { data, isLoading } = useGetSalesQuery(
-    { agentId },
-    { skip: !agentId } // agar token yo‘q bo‘lsa query qilmaydi
-  );
-
-  const sales = useMemo(() => data?.sales || [], [data]);
   const [dateRange, setDateRange] = useState([
     dayjs().startOf("day"),
     dayjs().endOf("day"),
   ]);
+
+  // 🛒 Faqat shu agentning tanlangan davrdagi sotuvlari.
+  // Sanani serverga beramiz — aks holda hamma sotuv (yuzlab) birdan tortiladi.
+  const { data, isLoading } = useGetSalesQuery(
+    {
+      agentId,
+      ...(dateRange?.[0] && dateRange?.[1]
+        ? {
+            from: dayjs(dateRange[0]).format("YYYY-MM-DD"),
+            to: dayjs(dateRange[1]).format("YYYY-MM-DD"),
+          }
+        : {}),
+    },
+    { skip: !agentId } // agar token yo‘q bo‘lsa query qilmaydi
+  );
+
+  const sales = useMemo(() => data?.sales || [], [data]);
   // 🔴 "Qarzga qilingan savdo" kartasi bosilganda yoqiladi
   const [debtOnly, setDebtOnly] = useState(false);
 
@@ -116,8 +128,9 @@ export default function AgentSalesHistory() {
           paid_amount: Number(editSale.paid) || 0,
         },
       }).unwrap();
-      message.success("Sotuv yangilandi ✅");
+      // Oyna har qanday holatda yopilsin — xabar ko'rsatish unga to'sqinlik qilmasin
       setEditSale(null);
+      message.success("Sotuv yangilandi ✅");
     } catch (err) {
       message.error(err?.data?.message || "Saqlashda xatolik ❌");
     }
