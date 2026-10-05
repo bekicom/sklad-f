@@ -1,5 +1,5 @@
 // pages/AgentSalesHistory.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Table,
   Tag,
@@ -81,6 +81,9 @@ export default function AgentSalesHistory() {
       invoice: s.invoice_number,
       customer: s.customer_id?.name || "",
       paid: Number(s.paid_amount) || 0,
+      // To'liq to'langan (naqd/karta) sotuv tahrirdan keyin ham shunday qolsin
+      fullyPaid:
+        Number(s.total_amount) > 0 && Number(s.remaining_debt || 0) === 0,
       lines: (s.products || []).map((p) => ({
         product_id: p.product_id?._id || p.product_id,
         name: p.name,
@@ -100,21 +103,24 @@ export default function AgentSalesHistory() {
     [editSale]
   );
 
-  // Miqdor kamaytirilganda to'langan summa yangi jamidan oshib qolmasin
-  useEffect(() => {
-    if (!editSale) return;
-    if (Number(editSale.paid) > editTotal) {
-      setEditSale((prev) =>
-        prev && Number(prev.paid) > editTotal ? { ...prev, paid: editTotal } : prev
-      );
-    }
-  }, [editTotal, editSale]);
-
   const setLine = (idx, patch) =>
-    setEditSale((prev) => ({
-      ...prev,
-      lines: prev.lines.map((l, i) => (i === idx ? { ...l, ...patch } : l)),
-    }));
+    setEditSale((prev) => {
+      if (!prev) return prev;
+      const lines = prev.lines.map((l, i) =>
+        i === idx ? { ...l, ...patch } : l
+      );
+      const total = lines.reduce(
+        (sum, l) => sum + Number(l.quantity || 0) * Number(l.price || 0),
+        0
+      );
+      return {
+        ...prev,
+        lines,
+        // To'liq to'langan sotuvda to'lov jami bilan birga yuradi — qarzga
+        // aylanib qolmaydi. Aks holda faqat jamidan oshmasligi ta'minlanadi.
+        paid: prev.fullyPaid ? total : Math.min(Number(prev.paid || 0), total),
+      };
+    });
 
   const handleSaveEdit = async () => {
     const lines = (editSale?.lines || []).filter((l) => Number(l.quantity) > 0);
