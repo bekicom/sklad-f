@@ -13,8 +13,14 @@ import {
   Popconfirm,
   App as AntdApp,
   Tooltip,
+  Select,
 } from "antd";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import { useGetAllStoreItemsQuery } from "../context/service/store.service";
 import dayjs from "dayjs";
 
 import {
@@ -62,6 +68,66 @@ export default function AgentSalesHistory() {
   const [updateSale, { isLoading: saving }] = useUpdateSaleMutation();
   const [deleteSale] = useDeleteSaleMutation();
   const [editSale, setEditSale] = useState(null); // { _id, lines: [...], paid }
+
+  // Oynaga yangi mahsulot qo'shish uchun ombor ro'yxati (faqat oyna ochiqda)
+  const { data: storeItems = [] } = useGetAllStoreItemsQuery(undefined, {
+    skip: !editSale,
+  });
+
+  const storeOptions = useMemo(() => {
+    const list = Array.isArray(storeItems) ? storeItems : storeItems?.data || [];
+    return list
+      .filter((s) => Number(s.quantity) > 0)
+      .map((s) => ({
+        value: s._id,
+        label: `${s.product_name}${s.model ? " · " + s.model : ""} — ${Number(
+          s.quantity
+        ).toLocaleString()} ${s.unit} · ${Number(
+          s.sell_price
+        ).toLocaleString()} so'm`,
+        item: s,
+      }));
+  }, [storeItems]);
+
+  // Ro'yxatga yangi mahsulot qo'shish. Allaqachon bor bo'lsa miqdori oshadi.
+  const addProduct = (storeId) => {
+    const opt = storeOptions.find((o) => o.value === storeId);
+    if (!opt) return;
+    const s = opt.item;
+
+    setEditSale((prev) => {
+      if (!prev) return prev;
+      const idx = prev.lines.findIndex(
+        (l) => String(l.product_id) === String(s._id)
+      );
+      const lines =
+        idx >= 0
+          ? prev.lines.map((l, i) =>
+              i === idx
+                ? { ...l, quantity: Number(l.quantity || 0) + 1 }
+                : l
+            )
+          : [
+              ...prev.lines,
+              {
+                product_id: s._id,
+                name: s.product_name,
+                unit: s.unit,
+                quantity: 1,
+                price: Number(s.sell_price) || 0,
+              },
+            ];
+      const total = lines.reduce(
+        (sum, l) => sum + Number(l.quantity || 0) * Number(l.price || 0),
+        0
+      );
+      return {
+        ...prev,
+        lines,
+        paid: prev.fullyPaid ? total : Math.min(Number(prev.paid || 0), total),
+      };
+    });
+  };
 
   // Backenddagi qoida bilan bir xil: chek chiqarilgan yoki sotuvdan keyin
   // qarz to'lovi olingan bo'lsa, agent tegina olmaydi
@@ -620,6 +686,19 @@ export default function AgentSalesHistory() {
             </div>
             );
           })}
+
+          {/* ➕ Sotuvga yangi mahsulot qo'shish */}
+          <Select
+            showSearch
+            value={null}
+            placeholder="➕ Mahsulot qo‘shish — nomini yozing"
+            optionFilterProp="label"
+            options={storeOptions}
+            onChange={addProduct}
+            style={{ width: "100%" }}
+            notFoundContent="Omborda topilmadi"
+            suffixIcon={<PlusOutlined />}
+          />
 
           <div
             style={{
