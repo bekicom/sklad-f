@@ -1,5 +1,5 @@
 // pages/AgentSalesHistory.jsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Table,
   Tag,
@@ -100,6 +100,16 @@ export default function AgentSalesHistory() {
     [editSale]
   );
 
+  // Miqdor kamaytirilganda to'langan summa yangi jamidan oshib qolmasin
+  useEffect(() => {
+    if (!editSale) return;
+    if (Number(editSale.paid) > editTotal) {
+      setEditSale((prev) =>
+        prev && Number(prev.paid) > editTotal ? { ...prev, paid: editTotal } : prev
+      );
+    }
+  }, [editTotal, editSale]);
+
   const setLine = (idx, patch) =>
     setEditSale((prev) => ({
       ...prev,
@@ -112,10 +122,8 @@ export default function AgentSalesHistory() {
       message.error("Kamida bitta mahsulot qolishi kerak.");
       return;
     }
-    if (Number(editSale.paid) > editTotal) {
-      message.error("To‘langan summa sotuv summasidan katta bo‘lmasin.");
-      return;
-    }
+    // Jamidan oshib ketgan to'lov yangi summagacha qisqartiriladi
+    const paid = Math.min(Math.max(Number(editSale.paid) || 0, 0), editTotal);
     try {
       await updateSale({
         id: editSale._id,
@@ -125,7 +133,7 @@ export default function AgentSalesHistory() {
             quantity: Number(l.quantity),
             price: Number(l.price),
           })),
-          paid_amount: Number(editSale.paid) || 0,
+          paid_amount: paid,
         },
       }).unwrap();
       // Oyna har qanday holatda yopilsin — xabar ko'rsatish unga to'sqinlik qilmasin
@@ -547,19 +555,24 @@ export default function AgentSalesHistory() {
         </div>
 
         <Space direction="vertical" size={10} style={{ width: "100%" }}>
-          {(editSale?.lines || []).map((l, idx) => (
+          {(editSale?.lines || []).map((l, idx) => {
+            // Maydon bo'sh turgani (yozilayotgani) bilan 0 yozilgani farqlanadi
+            const bosh = l.quantity === null || l.quantity === undefined;
+            const chiqariladi = !bosh && Number(l.quantity) <= 0;
+
+            return (
             <div
               key={idx}
               style={{
                 border: "1px solid #f0f0f0",
                 borderRadius: 8,
                 padding: 10,
-                background: Number(l.quantity) > 0 ? "#fff" : "#fff1f0",
+                background: chiqariladi ? "#fff1f0" : "#fff",
               }}
             >
               <div style={{ fontWeight: 600, marginBottom: 8 }}>
                 {l.name}
-                {Number(l.quantity) <= 0 && (
+                {chiqariladi && (
                   <Tag color="red" style={{ marginLeft: 8 }}>
                     o‘chiriladi
                   </Tag>
@@ -571,7 +584,8 @@ export default function AgentSalesHistory() {
                   min={0}
                   step={1}
                   value={l.quantity}
-                  onChange={(v) => setLine(idx, { quantity: v ?? 0 })}
+                  // null saqlanadi — maydonni tozalab qayta yozish uchun
+                  onChange={(v) => setLine(idx, { quantity: v })}
                   style={{ width: 110 }}
                   addonAfter={l.unit}
                 />
@@ -580,7 +594,7 @@ export default function AgentSalesHistory() {
                   min={0}
                   step={1000}
                   value={l.price}
-                  onChange={(v) => setLine(idx, { price: v ?? 0 })}
+                  onChange={(v) => setLine(idx, { price: v })}
                   style={{ width: 140 }}
                   formatter={(v) =>
                     v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : ""
@@ -598,7 +612,8 @@ export default function AgentSalesHistory() {
                 </b>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           <div
             style={{
@@ -615,9 +630,7 @@ export default function AgentSalesHistory() {
               min={0}
               step={1000}
               value={editSale?.paid}
-              onChange={(v) =>
-                setEditSale((prev) => ({ ...prev, paid: v ?? 0 }))
-              }
+              onChange={(v) => setEditSale((prev) => ({ ...prev, paid: v }))}
               style={{ width: 150 }}
               formatter={(v) =>
                 v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : ""
