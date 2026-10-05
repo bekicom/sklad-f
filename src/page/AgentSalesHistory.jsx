@@ -169,6 +169,28 @@ export default function AgentSalesHistory() {
     [editSale]
   );
 
+  // Mahsulotni sotuvdan butunlay olib tashlash
+  const removeLine = (idx) =>
+    setEditSale((prev) => {
+      if (!prev) return prev;
+      if (prev.lines.length <= 1) {
+        message.warning(
+          "Oxirgi mahsulotni o‘chirib bo‘lmaydi — sotuvni butunlay o‘chiring."
+        );
+        return prev;
+      }
+      const lines = prev.lines.filter((_, i) => i !== idx);
+      const total = lines.reduce(
+        (sum, l) => sum + Number(l.quantity || 0) * Number(l.price || 0),
+        0
+      );
+      return {
+        ...prev,
+        lines,
+        paid: prev.fullyPaid ? total : Math.min(Number(prev.paid || 0), total),
+      };
+    });
+
   const setLine = (idx, patch) =>
     setEditSale((prev) => {
       if (!prev) return prev;
@@ -642,13 +664,33 @@ export default function AgentSalesHistory() {
                 background: chiqariladi ? "#fff1f0" : "#fff",
               }}
             >
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                {l.name}
-                {chiqariladi && (
-                  <Tag color="red" style={{ marginLeft: 8 }}>
-                    o‘chiriladi
-                  </Tag>
-                )}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>{l.name}</span>
+                {chiqariladi && <Tag color="red">o‘chiriladi</Tag>}
+                <Popconfirm
+                  title={`"${l.name}" sotuvdan olib tashlansinmi?`}
+                  okText="Ha"
+                  cancelText="Yo‘q"
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => removeLine(idx)}
+                >
+                  <Tooltip title="Mahsulotni o‘chirish">
+                    <Button
+                      size="small"
+                      danger
+                      type="text"
+                      icon={<DeleteOutlined />}
+                      style={{ marginLeft: "auto" }}
+                    />
+                  </Tooltip>
+                </Popconfirm>
               </div>
               <Space wrap size={8}>
                 <span style={{ fontSize: 12, color: "#666" }}>Miqdor:</span>
@@ -746,8 +788,8 @@ export default function AgentSalesHistory() {
           </div>
 
           <div style={{ fontSize: 12, color: "#888" }}>
-            Miqdorni 0 qilsangiz, o‘sha mahsulot sotuvdan chiqariladi. Ombor
-            qoldig‘i va mijoz qarzi avtomatik to‘g‘rilanadi.
+            Mahsulotni olib tashlash uchun 🗑️ tugmasini bosing (yoki miqdorini
+            0 qiling). Ombor qoldig‘i va mijoz qarzi avtomatik to‘g‘rilanadi.
           </div>
         </Space>
       </Modal>
