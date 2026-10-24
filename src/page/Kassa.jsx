@@ -13,6 +13,7 @@ import {
   ReloadOutlined,
   MenuOutlined,
   ProfileOutlined, // 🆕 qo‘shildi
+  PictureOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -220,6 +221,18 @@ export default function KassaPro() {
           }}
         >
           Agentlar
+        </Button>
+        <Button
+          type="primary"
+          block
+          icon={<PictureOutlined />}
+          style={{ marginBottom: 12 }}
+          onClick={() => {
+            setOpen(false);
+            navigate("/kassa/rasmlar");
+          }}
+        >
+          Rasmlar
         </Button>
       </>
     );
