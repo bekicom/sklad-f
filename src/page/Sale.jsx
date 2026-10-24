@@ -19,7 +19,9 @@ import {
 import {
   DeleteOutlined,
   ShoppingCartOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
+import { imageUrl } from "../context/service/image.service";
 import { useReactToPrint } from "react-to-print";
 import { useGetAllStoreItemsQuery } from "../context/service/store.service";
 import { useLazyGetSaleInvoiceQuery } from "../context/service/sales.service";
@@ -541,9 +543,10 @@ export default function Sale() {
             style={{
               display: "grid",
               gap: 15,
+              // Qotirilgan 5 ustun o'rniga minimal kenglik — nomlar qirqilmaydi
               gridTemplateColumns: isMobile
-                ? "1fr"
-                : "repeat(5, minmax(0, 1fr))",
+                ? "repeat(auto-fill, minmax(150px, 1fr))"
+                : "repeat(auto-fill, minmax(190px, 1fr))",
             }}
           >
             {filteredProducts.map((p) => {
@@ -567,21 +570,62 @@ export default function Sale() {
                     cursor: isAvailable(p) ? "pointer" : "not-allowed",
                     transition: "all 0.2s ease",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    // Ichidagi matn (nom + model + narx + miqdor) ~135px joy talab
-                    // qiladi, shuning uchun balandlik va padding shunga moslangan
-                    height: isMobile ? "122px" : "170px",
+                    // Matn (nom + model + narx + miqdor) ~135px, rasm esa
+                    // tepada alohida joy oladi — balandlik shunga moslangan
+                    height: isMobile ? "200px" : "280px",
                     width: "100%",
+                    overflow: "hidden",
                   }}
                   bodyStyle={{
-                    padding: isMobile ? 10 : 12,
+                    padding: 0,
                     display: "flex",
                     flexDirection: "column",
-                    alignItems: "center",
-                    textAlign: "center",
                     height: "100%",
-                    justifyContent: "center",
                   }}
                 >
+                  {/* 🖼 Mahsulot rasmi — bo'lmasa joy egallamaydigan belgi */}
+                  <div
+                    style={{
+                      height: isMobile ? 78 : 110,
+                      flexShrink: 0,
+                      background: "#f5f5f5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {p.image ? (
+                      <img
+                        src={imageUrl(p.image)}
+                        alt={p.product_name}
+                        loading="lazy"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <PictureOutlined
+                        style={{ fontSize: isMobile ? 22 : 30, color: "#ccc" }}
+                      />
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      flex: 1,
+                      minHeight: 0,
+                      padding: isMobile ? 8 : 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      textAlign: "center",
+                      justifyContent: "center",
+                    }}
+                  >
                   <div
                     style={{
                       fontSize: isMobile ? "14px" : "24px",
@@ -637,6 +681,7 @@ export default function Sale() {
                     }}
                   >
                     {Number(p.quantity).toFixed(1)} {p.unit}
+                  </div>
                   </div>
                 </Card>
               );

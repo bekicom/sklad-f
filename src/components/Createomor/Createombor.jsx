@@ -12,7 +12,11 @@ import {
   message,
   Typography,
   Grid,
+  Space,
 } from "antd";
+import { PictureOutlined } from "@ant-design/icons";
+import ImagePicker from "../ImagePicker/ImagePicker";
+import { imageUrl } from "../../context/service/image.service";
 import {
   useCreateImportMutation,
   useGetLastPartiyaNumberQuery,
@@ -34,6 +38,10 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
   const [remainingDebt, setRemainingDebt] = useState(0);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", phone: "" });
+
+  // 🖼 Tahrirlashda tanlanadigan mahsulot rasmi (Image.filename)
+  const [productImage, setProductImage] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const isEditMode = !!editingItem;
 
@@ -66,7 +74,9 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
         remaining_debt: editingItem.remaining_debt || 0,
         note: editingItem.note || "",
       });
+      setProductImage(editingItem.image || "");
     } else {
+      setProductImage("");
       form.setFieldsValue({
         partiya_number:
           lastPartiyaData?.lastPartiyaNumber !== undefined
@@ -155,6 +165,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           paid_amount: Number(values.paid_amount) || 0,
           remaining_debt: Number(values.remaining_debt) || 0,
           note: values.note || "",
+          image: productImage || "",
         };
 
         await updateStoreItem({
@@ -450,6 +461,67 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
         >
           {isEditMode ? (
             <>
+              {/* 🖼 Mahsulot rasmi — Rasmlar papkasidan tanlanadi */}
+              <Row gutter={16}>
+                <Col xs={24}>
+                  <Form.Item label="Mahsulot rasmi">
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 96,
+                          height: 96,
+                          borderRadius: 10,
+                          border: "1px solid #f0f0f0",
+                          background: "#fafafa",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {productImage ? (
+                          <img
+                            src={imageUrl(productImage)}
+                            alt="Mahsulot rasmi"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        ) : (
+                          <PictureOutlined
+                            style={{ fontSize: 28, color: "#bbb" }}
+                          />
+                        )}
+                      </div>
+
+                      <Space wrap>
+                        <Button
+                          icon={<PictureOutlined />}
+                          onClick={() => setPickerOpen(true)}
+                        >
+                          {productImage ? "Boshqa rasm tanlash" : "Rasm tanlash"}
+                        </Button>
+                        {productImage && (
+                          <Button danger onClick={() => setProductImage("")}>
+                            Rasmni olib tashlash
+                          </Button>
+                        )}
+                      </Space>
+                    </div>
+                  </Form.Item>
+                </Col>
+              </Row>
+
               <Row gutter={16}>
                 <Col xs={24}>
                   <Form.Item
@@ -912,6 +984,13 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
           </div>
         </Form>
       </Modal>
+
+      <ImagePicker
+        open={pickerOpen}
+        value={productImage}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(img) => setProductImage(img.filename)}
+      />
     </>
   );
 }

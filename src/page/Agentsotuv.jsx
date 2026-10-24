@@ -16,7 +16,9 @@ import {
 import {
   DeleteOutlined,
   ShoppingCartOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
+import { imageUrl } from "../context/service/image.service";
 import { useReactToPrint } from "react-to-print";
 import { useGetAllStoreItemsQuery } from "../context/service/store.service";
 import { useLazyGetSaleInvoiceQuery } from "../context/service/sales.service";
@@ -559,9 +561,10 @@ export default function Agentsotuv() {
             style={{
               display: "grid",
               gap: 15,
+              // Qotirilgan 5 ustun o'rniga minimal kenglik — nomlar qirqilmaydi
               gridTemplateColumns: isMobile
-                ? "1fr"
-                : "repeat(5, minmax(0, 1fr))",
+                ? "repeat(auto-fill, minmax(150px, 1fr))"
+                : "repeat(auto-fill, minmax(190px, 1fr))",
             }}
           >
             {filteredProducts.map((p) => (
@@ -574,18 +577,59 @@ export default function Agentsotuv() {
                     border: "1px solid #e8f4fd",
                     background: p.quantity <= 20 ? "#df6d6dff" : "#fff",
                     cursor: p.quantity > 0 ? "pointer" : "not-allowed",
-                    height: isMobile ? "122px" : "150px",
+                    height: isMobile ? "198px" : "250px",
                     transition: "all 0.2s ease",
+                    overflow: "hidden",
                   }}
                   bodyStyle={{
-                    padding: isMobile ? 10 : 12,
+                    padding: 0,
                     display: "flex",
                     flexDirection: "column",
-                    justifyContent: "center",
-                    textAlign: "center",
                     height: "100%",
                   }}
                 >
+                  {/* 🖼 Mahsulot rasmi */}
+                  <div
+                    style={{
+                      height: isMobile ? 78 : 100,
+                      flexShrink: 0,
+                      background: "#f5f5f5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {p.image ? (
+                      <img
+                        src={imageUrl(p.image)}
+                        alt={p.product_name}
+                        loading="lazy"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <PictureOutlined
+                        style={{ fontSize: isMobile ? 22 : 28, color: "#ccc" }}
+                      />
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      flex: 1,
+                      minHeight: 0,
+                      padding: isMobile ? 8 : 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      textAlign: "center",
+                    }}
+                  >
                   <div
                     className="product-name"
                     style={{
@@ -629,6 +673,7 @@ export default function Agentsotuv() {
                     }}
                   >
                     {p.quantity} {p.unit}
+                  </div>
                   </div>
                 </Card>
               </div>
