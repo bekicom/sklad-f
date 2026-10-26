@@ -39,9 +39,13 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", phone: "" });
 
-  // 🖼 Tahrirlashda tanlanadigan mahsulot rasmi (Image.filename)
+  // 🖼 Mahsulot rasmi (Image.filename).
+  // productImage — tahrirlash rejimi uchun.
+  // pickerRow — kirim shaklidagi qaysi mahsulot qatori uchun ochilgani
+  // (null bo'lsa tahrirlash rejimi).
   const [productImage, setProductImage] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerRow, setPickerRow] = useState(null);
 
   const isEditMode = !!editingItem;
 
@@ -219,6 +223,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
             total_price: Number(p.total_price),
             sell_price: Number(p.sell_price),
             currency: p.currency,
+            image: p.image || "",
             base_unit: getBaseUnit(unit),
             base_quantity: Number(
               (Number(p.quantity || 0) * factor).toFixed(2)
@@ -258,6 +263,49 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
   const clientModalWidth = isMobile ? "95%" : 520;
   const fieldCol = isMobile ? 24 : 8;
   const halfCol = isMobile ? 24 : 12;
+
+  // Kirim shaklidagi qatorlarning joriy rasmini kuzatib turamiz
+  const watchedProducts = Form.useWatch("products", form);
+  const rowImage = (name) => watchedProducts?.[name]?.image || "";
+
+  const openRowPicker = (name) => {
+    setPickerRow(name);
+    setPickerOpen(true);
+  };
+
+  // Qatorga rasm tanlash tugmasi — ikkala ko'rinishda ham ishlatiladi
+  const renderRowImageButton = (name, full = false) => (
+    <>
+      <Form.Item name={[name, "image"]} hidden>
+        <Input />
+      </Form.Item>
+      <Button
+        onClick={() => openRowPicker(name)}
+        title={rowImage(name) ? "Rasmni almashtirish" : "Rasm tanlash"}
+        style={{
+          width: "100%",
+          height: 32,
+          padding: 0,
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+        }}
+      >
+        {rowImage(name) ? (
+          <img
+            src={imageUrl(rowImage(name))}
+            alt=""
+            style={{ width: 30, height: 30, objectFit: "cover" }}
+          />
+        ) : (
+          <PictureOutlined />
+        )}
+        {full && (rowImage(name) ? "Rasm tanlangan" : "Rasm tanlash")}
+      </Button>
+    </>
+  );
 
   const renderProductFields = (name, key, fields, remove) => (
     <div
@@ -380,6 +428,11 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                 { label: "USD", value: "USD" },
               ]}
             />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={2}>
+          <Form.Item label={isMobile ? "Rasm" : undefined} style={{ marginBottom: 8 }}>
+            {renderRowImageButton(name, isMobile)}
           </Form.Item>
         </Col>
         <Col xs={24} md={1}>
@@ -507,7 +560,10 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                       <Space wrap>
                         <Button
                           icon={<PictureOutlined />}
-                          onClick={() => setPickerOpen(true)}
+                          onClick={() => {
+                            setPickerRow(null);
+                            setPickerOpen(true);
+                          }}
                         >
                           {productImage ? "Boshqa rasm tanlash" : "Rasm tanlash"}
                         </Button>
@@ -935,6 +991,7 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
                               />
                             </Form.Item>
                           </Col>
+                          <Col span={2}>{renderRowImageButton(name)}</Col>
                           <Col span={1}>
                             <Button
                               danger
@@ -987,9 +1044,19 @@ export default function CreateOmbor({ open, onClose, editingItem = null }) {
 
       <ImagePicker
         open={pickerOpen}
-        value={productImage}
-        onClose={() => setPickerOpen(false)}
-        onSelect={(img) => setProductImage(img.filename)}
+        value={pickerRow === null ? productImage : rowImage(pickerRow)}
+        onClose={() => {
+          setPickerOpen(false);
+          setPickerRow(null);
+        }}
+        onSelect={(img) => {
+          if (pickerRow === null) setProductImage(img.filename);
+          else form.setFieldValue(["products", pickerRow, "image"], img.filename);
+        }}
+        onClear={() => {
+          if (pickerRow === null) setProductImage("");
+          else form.setFieldValue(["products", pickerRow, "image"], "");
+        }}
       />
     </>
   );

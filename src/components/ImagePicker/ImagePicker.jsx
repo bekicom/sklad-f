@@ -6,7 +6,7 @@ import { useGetImagesQuery, imageUrl } from "../../context/service/image.service
 
 const PAGE_SIZE = 40;
 
-export default function ImagePicker({ open, onClose, onSelect, value }) {
+export default function ImagePicker({ open, onClose, onSelect, value, onClear }) {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
 
@@ -33,7 +33,20 @@ export default function ImagePicker({ open, onClose, onSelect, value }) {
       open={open}
       onCancel={onClose}
       footer={
-        <Button onClick={onClose}>Yopish</Button>
+        <>
+          {value && onClear && (
+            <Button
+              danger
+              onClick={() => {
+                onClear();
+                onClose();
+              }}
+            >
+              Rasmni olib tashlash
+            </Button>
+          )}
+          <Button onClick={onClose}>Yopish</Button>
+        </>
       }
       width={isMobile ? "95%" : 800}
       style={{ top: 20 }}
