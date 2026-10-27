@@ -1,6 +1,8 @@
 /* Sotuv sahifalaridagi mahsulot kartalari to'ri.
-   Ustunlar soni JS breakpoint'iga emas, ekran kengligiga qarab belgilanadi —
-   APK ichidagi WebView ham, brauzer ham bir xil ko'rsatadi. */
+   Telefonda ustunlar soni JS breakpoint'iga emas, ekran kengligiga qarab
+   belgilanadi — APK ichidagi WebView ham, brauzer ham bir xil ko'rsatadi.
+   Kattaroq ekranda esa auto-fill konteyner kengligiga moslashadi
+   (sotuv sahifasida yon tarafda savat turadi). */
 .product-grid {
   display: grid;
   gap: 12px;
@@ -9,18 +11,6 @@
 
 @media (min-width: 640px) {
   .product-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 900px) {
-  .product-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1280px) {
-  .product-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   }
 }
