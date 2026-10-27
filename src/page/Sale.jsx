@@ -540,16 +540,8 @@ export default function Sale() {
             </Button>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gap: 12,
-              // Telefonda 2 ustun, kattaroq ekranda kenglikka qarab
-              gridTemplateColumns: isMobile
-                ? "repeat(2, minmax(0, 1fr))"
-                : "repeat(auto-fill, minmax(200px, 1fr))",
-            }}
-          >
+          {/* Ustunlar soni styles/product-grid.css dagi media query orqali belgilanadi */}
+          <div className="product-grid">
             {filteredProducts.map((p) => {
               if (p.quantity <= 0) return null;
 

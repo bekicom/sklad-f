@@ -5,6 +5,7 @@ import { store } from "./context/store/index.js";
 import { BrowserRouter, HashRouter } from "react-router-dom";
 import { App as AntdApp } from "antd";
 import App from "./App.jsx";
+import "./styles/product-grid.css";
 
 // 🔹 Electron yoki oddiy browserni aniqlash
 const isElectron =

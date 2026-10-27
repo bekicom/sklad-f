@@ -557,17 +557,8 @@ export default function Agentsotuv() {
             </Button>
           </div>
 
-          <div
-            className="products-grid"
-            style={{
-              display: "grid",
-              gap: 12,
-              // Telefonda 2 ustun, kattaroq ekranda kenglikka qarab
-              gridTemplateColumns: isMobile
-                ? "repeat(2, minmax(0, 1fr))"
-                : "repeat(auto-fill, minmax(200px, 1fr))",
-            }}
-          >
+          {/* Ustunlar soni styles/product-grid.css dagi media query orqali belgilanadi */}
+          <div className="product-grid">
             {filteredProducts.map((p) => (
               <div key={p._id}>
                 <Card
@@ -747,22 +738,9 @@ export default function Agentsotuv() {
         .desktop-layout { display: block !important; min-height: calc(100vh - 120px) !important; }
         .products-section { min-width: 0 !important; }
 
-        @media (max-width: 900px) {
-          .products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-        }
-
         @media (max-width: 768px) {
           .search-filters { flex-direction: column !important; gap: 8px !important; }
           .search-input, .category-select { width: 100% !important; min-width: unset !important; flex: none !important; }
-          .products-grid { grid-template-columns: 1fr !important; }
-        }
-
-        @media (max-width: 600px) {
-          .products-grid { grid-template-columns: 1fr !important; }
-        }
-
-        @media (max-width: 360px) {
-          .products-grid { grid-template-columns: 1fr !important; }
         }
       `,
         }}
