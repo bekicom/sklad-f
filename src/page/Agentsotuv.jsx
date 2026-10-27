@@ -17,6 +17,7 @@ import {
   DeleteOutlined,
   ShoppingCartOutlined,
   PictureOutlined,
+  ShoppingOutlined,
 } from "@ant-design/icons";
 import { imageUrl } from "../context/service/image.service";
 import { useReactToPrint } from "react-to-print";
@@ -560,11 +561,11 @@ export default function Agentsotuv() {
             className="products-grid"
             style={{
               display: "grid",
-              gap: 15,
-              // Qotirilgan 5 ustun o'rniga minimal kenglik — nomlar qirqilmaydi
+              gap: 12,
+              // Telefonda 2 ustun, kattaroq ekranda kenglikka qarab
               gridTemplateColumns: isMobile
-                ? "repeat(auto-fill, minmax(150px, 1fr))"
-                : "repeat(auto-fill, minmax(190px, 1fr))",
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(auto-fill, minmax(200px, 1fr))",
             }}
           >
             {filteredProducts.map((p) => (
@@ -573,27 +574,22 @@ export default function Agentsotuv() {
                   hoverable={p.quantity > 0}
                   onClick={() => addToCart(p)}
                   style={{
-                    borderRadius: 12,
-                    border: "1px solid #e8f4fd",
-                    background: p.quantity <= 20 ? "#df6d6dff" : "#fff",
+                    borderRadius: 14,
+                    border: "none",
+                    background: "#ffffff",
                     cursor: p.quantity > 0 ? "pointer" : "not-allowed",
-                    height: isMobile ? "198px" : "250px",
-                    transition: "all 0.2s ease",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
                     overflow: "hidden",
+                    opacity: p.quantity > 0 ? 1 : 0.65,
                   }}
-                  bodyStyle={{
-                    padding: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "100%",
-                  }}
+                  bodyStyle={{ padding: 0 }}
                 >
-                  {/* 🖼 Mahsulot rasmi */}
+                  {/* 🖼 Mahsulot rasmi — kartaning yuzi */}
                   <div
                     style={{
-                      height: isMobile ? 78 : 100,
-                      flexShrink: 0,
-                      background: "#f5f5f5",
+                      width: "100%",
+                      aspectRatio: "4 / 3",
+                      background: "#f1f3f5",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -614,66 +610,87 @@ export default function Agentsotuv() {
                       />
                     ) : (
                       <PictureOutlined
-                        style={{ fontSize: isMobile ? 22 : 28, color: "#ccc" }}
+                        style={{ fontSize: 34, color: "#ccc" }}
                       />
                     )}
                   </div>
 
-                  <div
-                    style={{
-                      flex: 1,
-                      minHeight: 0,
-                      padding: isMobile ? 8 : 12,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      textAlign: "center",
-                    }}
-                  >
-                  <div
-                    className="product-name"
-                    style={{
-                      fontSize: isMobile ? "14px" : "16px",
-                      fontWeight: "bold",
-                      color: "#1677ff",
-                      marginBottom: 2,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                    title={p.product_name}
-                  >
-                    {p.product_name}
-                  </div>
-                  <div
-                    className="product-model"
-                    style={{
-                      fontSize: isMobile ? "12px" : "14px",
-                      color: "#555",
-                      marginBottom: 4,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {p.model || ""}
-                  </div>
-                  <div
-                    className="product-price"
-                    style={{ fontWeight: 600, marginBottom: isMobile ? 4 : 8 }}
-                  >
-                    {p.sell_price.toLocaleString()} so'm
-                  </div>
-                  <div
-                    className="product-quantity"
-                    style={{
-                      fontSize: isMobile ? "12px" : "13px",
-                      color: p.quantity > 0 ? "green" : "red",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {p.quantity} {p.unit}
-                  </div>
+                  <div style={{ padding: isMobile ? 10 : 14 }}>
+                    <div
+                      className="product-name"
+                      title={p.product_name}
+                      style={{
+                        fontSize: isMobile ? 15 : 17,
+                        fontWeight: 600,
+                        color: "#1f2937",
+                        lineHeight: 1.35,
+                        marginBottom: 2,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {p.product_name}
+                    </div>
+
+                    {p.model && (
+                      <div
+                        className="product-model"
+                        style={{
+                          fontSize: 12,
+                          color: "#9ca3af",
+                          marginBottom: 2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {p.model}
+                      </div>
+                    )}
+
+                    <div
+                      className="product-price"
+                      style={{
+                        fontSize: isMobile ? 19 : 22,
+                        fontWeight: 700,
+                        color: "#1677ff",
+                        lineHeight: 1.3,
+                        paddingBottom: 2,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {p.sell_price.toLocaleString()} so'm
+                    </div>
+
+                    <span
+                      className="product-quantity"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        background:
+                          p.quantity <= 0
+                            ? "#fee2e2"
+                            : p.quantity <= 20
+                            ? "#fff4e6"
+                            : "#e7f8ef",
+                        color:
+                          p.quantity <= 0
+                            ? "#b91c1c"
+                            : p.quantity <= 20
+                            ? "#c2410c"
+                            : "#15803d",
+                        borderRadius: 999,
+                        padding: "3px 10px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      <ShoppingOutlined />
+                      {p.quantity} {p.unit}
+                    </span>
                   </div>
                 </Card>
               </div>

@@ -20,6 +20,7 @@ import {
   DeleteOutlined,
   ShoppingCartOutlined,
   PictureOutlined,
+  ShoppingOutlined,
 } from "@ant-design/icons";
 import { imageUrl } from "../context/service/image.service";
 import { useReactToPrint } from "react-to-print";
@@ -542,11 +543,11 @@ export default function Sale() {
           <div
             style={{
               display: "grid",
-              gap: 15,
-              // Qotirilgan 5 ustun o'rniga minimal kenglik — nomlar qirqilmaydi
+              gap: 12,
+              // Telefonda 2 ustun, kattaroq ekranda kenglikka qarab
               gridTemplateColumns: isMobile
-                ? "repeat(auto-fill, minmax(150px, 1fr))"
-                : "repeat(auto-fill, minmax(190px, 1fr))",
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(auto-fill, minmax(200px, 1fr))",
             }}
           >
             {filteredProducts.map((p) => {
@@ -554,41 +555,35 @@ export default function Sale() {
 
               const isLowStock = p.quantity <= 20;
 
+              // Qoldiq belgisining rangi: normal yashil, kam bo'lsa to'q sariq
+              const pill = !isAvailable(p)
+                ? { bg: "#fee2e2", fg: "#b91c1c" }
+                : isLowStock
+                ? { bg: "#fff4e6", fg: "#c2410c" }
+                : { bg: "#e7f8ef", fg: "#15803d" };
+
               return (
                 <Card
                   key={p._id}
                   hoverable={isAvailable(p)}
                   onClick={() => addToCart(p)}
                   style={{
-                    borderRadius: 12,
-                    border: "1px solid #e8f4fd",
-                    background: isLowStock
-                      ? "#f19e9eff"
-                      : isAvailable(p)
-                      ? "#ffffff"
-                      : "#f5bebeff",
+                    borderRadius: 14,
+                    border: "none",
+                    background: "#ffffff",
                     cursor: isAvailable(p) ? "pointer" : "not-allowed",
-                    transition: "all 0.2s ease",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    // Matn (nom + model + narx + miqdor) ~135px, rasm esa
-                    // tepada alohida joy oladi — balandlik shunga moslangan
-                    height: isMobile ? "200px" : "280px",
-                    width: "100%",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
                     overflow: "hidden",
+                    opacity: isAvailable(p) ? 1 : 0.65,
                   }}
-                  bodyStyle={{
-                    padding: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "100%",
-                  }}
+                  bodyStyle={{ padding: 0 }}
                 >
-                  {/* 🖼 Mahsulot rasmi — bo'lmasa joy egallamaydigan belgi */}
+                  {/* 🖼 Mahsulot rasmi — kartaning yuzi */}
                   <div
                     style={{
-                      height: isMobile ? 78 : 110,
-                      flexShrink: 0,
-                      background: "#f5f5f5",
+                      width: "100%",
+                      aspectRatio: "4 / 3",
+                      background: "#f1f3f5",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -609,79 +604,73 @@ export default function Sale() {
                       />
                     ) : (
                       <PictureOutlined
-                        style={{ fontSize: isMobile ? 22 : 30, color: "#ccc" }}
+                        style={{ fontSize: 34, color: "#ccc" }}
                       />
                     )}
                   </div>
 
-                  <div
-                    style={{
-                      flex: 1,
-                      minHeight: 0,
-                      padding: isMobile ? 8 : 12,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      textAlign: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                  <div
-                    style={{
-                      fontSize: isMobile ? "14px" : "24px",
-                      fontWeight: "bold",
-                      marginBottom: 2,
-                      // Shriftga nisbatan lineHeight — aks holda g/q/y ning dumi qirqiladi
-                      lineHeight: 1.35,
-                      paddingBottom: 2,
-                      // Flex ichida siqilmasin, aks holda overflow dumlarni kesadi
-                      flexShrink: 0,
-                      color: "#1677ff",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      width: "100%",
-                    }}
-                    title={p.product_name}
-                  >
-                    {p.product_name}
-                  </div>
-                  {p.model && (
+                  <div style={{ padding: isMobile ? 10 : 14 }}>
                     <div
+                      title={p.product_name}
                       style={{
-                        fontSize: isMobile ? "12px" : "18px",
-                        color: "#555",
-                        marginBottom: 4,
-                        fontWeight: 500,
-                        flexShrink: 0,
+                        fontSize: isMobile ? 15 : 17,
+                        fontWeight: 600,
+                        color: "#1f2937",
+                        lineHeight: 1.35,
+                        marginBottom: 2,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
-                        width: "100%",
                       }}
                     >
-                      {p.model}
+                      {p.product_name}
                     </div>
-                  )}
-                  <div
-                    style={{
-                      fontSize: isMobile ? "14px" : "22px",
-                      fontWeight: 600,
-                      color: "#1677ff",
-                      marginBottom: 4,
-                    }}
-                  >
-                    {p.sell_price.toLocaleString()} so'm
-                  </div>
-                  <div
-                    style={{
-                      fontSize: isMobile ? "12px" : "18px",
-                      fontWeight: 500,
-                      color: isAvailable(p) ? "#52c41a" : "red",
-                    }}
-                  >
-                    {Number(p.quantity).toFixed(1)} {p.unit}
-                  </div>
+
+                    {p.model && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "#9ca3af",
+                          marginBottom: 2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {p.model}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        fontSize: isMobile ? 19 : 22,
+                        fontWeight: 700,
+                        color: "#1677ff",
+                        lineHeight: 1.3,
+                        paddingBottom: 2,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {p.sell_price.toLocaleString()} so'm
+                    </div>
+
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        background: pill.bg,
+                        color: pill.fg,
+                        borderRadius: 999,
+                        padding: "3px 10px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      <ShoppingOutlined />
+                      {Number(p.quantity).toFixed(1)} {p.unit}
+                    </span>
                   </div>
                 </Card>
               );
