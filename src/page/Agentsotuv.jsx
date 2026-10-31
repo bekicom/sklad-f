@@ -569,7 +569,11 @@ export default function Agentsotuv() {
                     border: "none",
                     background: "#ffffff",
                     cursor: p.quantity > 0 ? "pointer" : "not-allowed",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                    // Oz qolgan mahsulot kartasi qizil ramka bilan ajralib tursin
+                    boxShadow:
+                      p.quantity > 0 && p.quantity <= 20
+                        ? "0 0 0 2px #ef4444, 0 1px 6px rgba(239,68,68,0.25)"
+                        : "0 1px 4px rgba(0,0,0,0.08)",
                     overflow: "hidden",
                     opacity: p.quantity > 0 ? 1 : 0.65,
                   }}
@@ -673,9 +677,9 @@ export default function Agentsotuv() {
                             ? "#c2410c"
                             : "#15803d",
                         borderRadius: 999,
-                        padding: "3px 10px",
-                        fontSize: 12,
-                        fontWeight: 600,
+                        padding: "4px 11px",
+                        fontSize: isMobile ? 14 : 13,
+                        fontWeight: 700,
                         lineHeight: 1.6,
                       }}
                     >
