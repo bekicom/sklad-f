@@ -14,6 +14,7 @@ import AgentSalesHistory from "./page/AgentSalesHistory.jsx";
 import AgentSalesDetail from "./page/AgentSalesDetail.jsx";
 import AgentOrders from "./page/AgentOrders.jsx";
 import Rasmlar from "./page/Rasmlar.jsx";
+import Maxsulotlar from "./page/Maxsulotlar.jsx";
 import { ZaxidiHero } from "./components/Brand/ZaxidiBrand";
 
 export default function App() {
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="statistika" element={<Stats />} />
         <Route path="xarajat" element={<Expense />} />
         <Route path="rasmlar" element={<Rasmlar />} />
+        <Route path="maxsulotlar" element={<Maxsulotlar />} />
         <Route path="agentlar" element={<Agent />} />
         <Route path="agentsotuv" element={<Agentsotuv />} />
         <Route path="agentsotuvlar" element={<AgentSalesHistory />} />

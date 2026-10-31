@@ -14,6 +14,7 @@ import {
   MenuOutlined,
   ProfileOutlined, // 🆕 qo‘shildi
   PictureOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -221,6 +222,18 @@ export default function KassaPro() {
           }}
         >
           Agentlar
+        </Button>
+        <Button
+          type="primary"
+          block
+          icon={<AppstoreOutlined />}
+          style={{ marginBottom: 12 }}
+          onClick={() => {
+            setOpen(false);
+            navigate("/kassa/maxsulotlar");
+          }}
+        >
+          Maxsulotlar
         </Button>
         <Button
           type="primary"
